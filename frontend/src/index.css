@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@theme {
+  --color-midnight-100: #121063;
+  --color-midnight-200: #B38476;
+  --color-tahiti: #3ab7bf;
+  --color-bermuda: #78dcca;
+  --color-black: #0F0402;
+  --color-custom-white:#F3F3F3;
+}
+
+@theme {
+  --spacing-custom-30: 30px;
+}
+/* Apply globally to all elements */
+*,
+*::before,
+*::after {
+  @apply box-border m-0 p-0;
+} 
+
+
+
+* {
+  margin:0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body{
+  padding: 40px;
+  background-color: #151515;
+  font-family: "Franklin Gothic Medium", Arial, Helvetica, sans-serif;
+}
+h2 {
+  text-align: center;
+  font-size: 48px;
+  color:#f3f3f3;
+  margin-bottom: 30px;
+  
+}
