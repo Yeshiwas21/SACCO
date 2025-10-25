@@ -4,7 +4,6 @@ import Navbar from "./components/Navbar";
 function App() {
   return (
     <div>
-      <p className="text-6xl text-white">SACCO</p>
       <Navbar></Navbar>
     </div>
   );
