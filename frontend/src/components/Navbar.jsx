@@ -14,7 +14,7 @@ const Navbar = () => {
           <div className="shrink-0">
             <a
               href="#"
-              className="text-2xl font-bold text-white hover:text-green-500 transition duration-300"
+              className="text-2xl font-bold text-white hover:text-blue-500 transition duration-300"
             >
               SACCO
             </a>
@@ -26,7 +26,7 @@ const Navbar = () => {
               <a
                 key={item}
                 href="#"
-                className="text-white hover:text-green-500 text-lg font-medium transition duration-300"
+                className="text-white hover:text-blue-500 text-lg font-medium transition duration-300"
               >
                 {item}
               </a>
@@ -66,7 +66,7 @@ const Navbar = () => {
             <a
               key={item}
               href="#"
-              className="block px-3 py-2 text-white hover:bg-green-600 rounded-md transition duration-300"
+              className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md transition duration-300"
               onClick={() => setIsOpen(false)} // Close menu on click
             >
               {item}
