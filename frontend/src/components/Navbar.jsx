@@ -1,10 +1,23 @@
-import React, { useState } from "react";
+import React from 'react'
 
-const Navbar = () => {
-  const [isOpen, setIsOpen] = useState(false);
+const Navbar =() => {
+  return (
+<div className="flex justify-between items-center h-24 text-white px-8 bg-gray-900">
+  <h1 className="text-3xl font-bold text-green-400">SACCO.</h1>
 
-  // Updated menu items
-  const navLinks = ["About", "Contact", "Login", "Logout"];
+  <ul className="flex gap-10">
+    <li className="hover:text-green-400 cursor-pointer">Home</li>
+    <li className="hover:text-green-400 cursor-pointer">Contact</li>
+    <li className="hover:text-green-400 cursor-pointer">About</li>
+    <li className="hover:text-green-400 cursor-pointer ml-[150px]">Login</li>
+  </ul>
+</div>
+
+    
+  )
+}
+
+export default Navbar
 
   return (
     <nav className="bg-gray-900 shadow-lg">
@@ -33,32 +46,11 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="md:hidden">
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="flex flex-col justify-center items-center space-y-2.5 w-8 h-10 text-gray-300 hover:text-white focus:outline-none"
-            >
-              <span
-                className={`block h-1 w-full bg-white rounded transition-transform duration-300 ${
-                  isOpen ? "rotate-45 translate-y-3" : ""
-                }`}
-              ></span>
-              <span
-                className={`block h-1 w-full bg-white rounded transition-opacity duration-300 ${
-                  isOpen ? "opacity-0" : ""
-                }`}
-              ></span>
-              <span
-                className={`block h-1 w-full bg-white rounded transition-transform duration-300 ${
-                  isOpen ? "-rotate-45 -translate-y-3" : ""
-                }`}
-              ></span>
-            </button>
-          </div>
-        </div>
-      </div>
+  
+    
 
+          
+              
       {/* Mobile Menu */}
       {isOpen && (
         <div className="md:hidden bg-gray-800 px-4 py-2 space-y-1">
@@ -78,4 +70,3 @@ const Navbar = () => {
   );
 };
 
-export default Navbar;
