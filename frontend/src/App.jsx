@@ -1,6 +1,8 @@
 import React from "react";
 import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
+import Login from "./pages/Login";
+import Footer from "./components/Footer";
 
 function App() {
   return (
@@ -11,6 +13,8 @@ function App() {
         <h1 className="text-2xl font-bold text-white text-center">
   Welcome to SACCO System
 </h1>
+        <Login/>
+        <Footer />
 
       </main>
     </div>
