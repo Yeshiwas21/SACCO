@@ -1,25 +1,23 @@
 import React from "react";
-import Navbar from "./components/Navbar";
-import Sidebar from "./components/Sidebar";
-import Login from "./pages/Login";
-import Footer from "./components/Footer";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
+import MainPage from "./pages/MainPage";
+import Members from "./pages/Members";
+// import Loans from "./pages/Loans";
+// import Reports from "./pages/Reports";
 
 function App() {
   return (
-    <div className="flex">
-      <Sidebar />
-      <main className="flex-1 p-6">
-        <Navbar />
-        <h1 className="text-2xl font-bold text-white text-center">
-  Welcome to SACCO System
-</h1>
-        <Login/>
-        <Footer />
-
-      </main>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} /> {/* Includes Navbar */}
+        <Route path="/main" element={<MainPage />} />
+        <Route path="/members" element={<Members />} />
+        {/* <Route path="/loans" element={<Loans />} />
+        <Route path="/reports" element={<Reports />} /> */}
+      </Routes>
+    </Router>
   );
 }
 
 export default App;
-

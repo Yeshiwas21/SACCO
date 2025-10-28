@@ -1,10 +1,17 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Updated menu items
-  const navLinks = ["Home", "About", "Contact", "Login", "Logout"];
+  const navLinks = [
+    { label: "Home", path: "/" },
+    { label: "About", path: "#" },
+    { label: "Contact", path: "#" },
+    { label: "Login", path: "#" },
+    { label: "Logout", path: "#" },
+    { label: "Main Page", path: "/main" },
+  ];
 
   return (
     <nav className="bg-gray-900 shadow-lg">
@@ -12,24 +19,24 @@ const Navbar = () => {
         <div className="flex justify-between h-16 items-center">
           {/* Logo / Brand */}
           <div className="shrink-0">
-            <a
-              href="#"
+            <Link
+              to="/"
               className="text-2xl font-bold text-white hover:text-blue-500 transition duration-300"
             >
               SACCO
-            </a>
+            </Link>
           </div>
 
           {/* Desktop Menu */}
           <div className="hidden md:flex gap-x-12">
             {navLinks.map((item) => (
-              <a
-                key={item}
-                href="#"
+              <Link
+                key={item.label}
+                to={item.path}
                 className="text-white hover:text-blue-500 text-lg font-medium transition duration-300"
               >
-                {item}
-              </a>
+                {item.label}
+              </Link>
             ))}
           </div>
 
@@ -63,14 +70,14 @@ const Navbar = () => {
       {isOpen && (
         <div className="md:hidden bg-gray-800 px-4 py-2 space-y-1">
           {navLinks.map((item) => (
-            <a
-              key={item}
-              href="#"
+            <Link
+              key={item.label}
+              to={item.path}
               className="block px-3 py-2 text-white hover:bg-blue-600 rounded-md transition duration-300"
-              onClick={() => setIsOpen(false)} // Close menu on click
+              onClick={() => setIsOpen(false)}
             >
-              {item}
-            </a>
+              {item.label}
+            </Link>
           ))}
         </div>
       )}
