@@ -10,14 +10,13 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Home />} /> {/* Includes Navbar */}
+        <Route path="/" element={<Home />} />
         <Route path="/main" element={<MainPage />} />
         <Route path="/members" element={<Members />} />
-        {/* <Route path="/loans" element={<Loans />} />
-        <Route path="/reports" element={<Reports />} /> */}
       </Routes>
     </Router>
   );
 }
 
 export default App;
+

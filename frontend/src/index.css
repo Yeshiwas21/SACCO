@@ -16,14 +16,6 @@
 *,
 *::before,
 *::after {
-  @apply box-border m-0 p-0;
-} 
-
-
-
-*,
-*::before,
-*::after {
   box-sizing: border-box; /* Keep box-sizing */
   /* remove m-0 p-0 */
 }
