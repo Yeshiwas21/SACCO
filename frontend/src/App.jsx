@@ -3,7 +3,11 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import MainPage from "./pages/MainPage";
 import Members from "./pages/Members";
-// import Loans from "./pages/Loans";
+import Savings from "./pages/Savings";
+import Loans from "./pages/Loans";
+import Fees from "./pages/Fees";
+import Repayments from "./pages/Repayments";
+import Dividend from "./pages/Dividend";
 // import Reports from "./pages/Reports";
 
 function App() {
@@ -13,10 +17,14 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/main" element={<MainPage />} />
         <Route path="/members" element={<Members />} />
+        <Route path="/savings" element={<Savings />} />
+        <Route path="/loans" element={<Loans />} />
+        <Route path="/fees" element={<Fees />} />
+        <Route path="/repayments" element={<Repayments />} />
+        <Route path="/dividend" element={<Dividend />} />
       </Routes>
     </Router>
   );
 }
 
 export default App;
-
