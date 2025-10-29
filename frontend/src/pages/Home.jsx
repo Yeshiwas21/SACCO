@@ -6,7 +6,7 @@ const Home = () => {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen bg-blue-300">
+      <main className="min-h-screen bg-[#F3F4F6]">
         <section className="text-center py-20">
           <h1 className="text-4xl font-bold text-gray-900">
             Welcome to SACCO Microfinance System
