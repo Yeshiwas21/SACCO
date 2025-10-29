@@ -13,7 +13,7 @@
   --spacing-custom-30: 30px;
 }
 /* Apply globally to all elements */
-*,
+
 *::before,
 *::after {
   box-sizing: border-box; /* Keep box-sizing */
