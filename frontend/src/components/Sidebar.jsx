@@ -7,6 +7,7 @@ import {
   FileText,
   Repeat,
   Percent,
+  LogOut,
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -18,6 +19,7 @@ const Sidebar = () => {
     { label: "Fee", icon: <FileText size={20} /> },
     { label: "Repayment", icon: <Repeat size={20} /> },
     { label: "Dividend", icon: <Percent size={20} /> },
+    { Label: "Logout", icon: <LogOut size={20} /> },
   ];
 
   return (
