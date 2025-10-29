@@ -21,7 +21,8 @@ const Sidebar = () => {
   ];
 
   return (
-    <ul className="flex flex-col gap-6 px-6">
+    <ul className="flex bg-gray-900 flex-col gap-6 px-6">
+      <br />
       {menuItems.map((item) => (
         <li
           key={item.label}
