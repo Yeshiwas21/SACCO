@@ -28,7 +28,7 @@ const MainPage = () => {
           <h2 className="text-2xl font-semibold text-gray-800">
             Dashboard Overview
           </h2>
-          <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+          <button className="bg-amber-300 text-black font-bold px-4 py-2 rounded-lg hover:bg-blue-700 transition">
             + Add New
           </button>
         </header>
