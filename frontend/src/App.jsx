@@ -8,6 +8,7 @@ import Loans from "./pages/Loans";
 import Fees from "./pages/Fees";
 import Repayments from "./pages/Repayments";
 import Dividend from "./pages/Dividend";
+import Login from "./pages/Login";
 // import Reports from "./pages/Reports";
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
         <Route path="/fees" element={<Fees />} />
         <Route path="/repayments" element={<Repayments />} />
         <Route path="/dividend" element={<Dividend />} />
+        <Route path="/login" element={<Login />} />
       </Routes>
     </Router>
   );

@@ -1,74 +1,89 @@
-import React from "react";
+import React, { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom"; // <-- import useNavigate
 
 const Login = () => {
-  return (
-    <section className="min-h-screen flex items-center justify-center bg-gray-100 px-4min-h-screen  relative ">
-      <div className="flex flex-col md:flex-row w-full max-w-4xl bg-white rounded-3xl shadow-lg overflow-hidden h-100 border-black-600">
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-        {/* Left Side (Form) */}
+  const navigate = useNavigate(); // <-- initialize navigate
+
+  const handleLogin = async () => {
+    try {
+      const response = await axios.post(
+        "http://127.0.0.1:8080//api/users/login/",
+        { email, password }
+      );
+
+      // Save token to localStorage
+      localStorage.setItem("token", response.data.token);
+
+      // Redirect to /main after successful login
+      navigate("/main");
+    } catch (err) {
+      setError("Invalid email or password");
+    }
+  };
+
+  return (
+    <section className="min-h-screen flex items-center justify-center bg-gray-100 px-4 relative">
+      <div className="flex flex-col md:flex-row w-full max-w-4xl bg-white rounded-3xl shadow-lg overflow-hidden h-100 border-black-600">
+        {/* Left Side */}
         <div className="md:w-1/2 p-8 md:p-12 flex flex-col justify-center space-y-[-7px]">
-          <form className="text-center space-y-4">
+          <form
+            className="text-center space-y-4"
+            onSubmit={(e) => e.preventDefault()}
+          >
             <p className="text-gray-600">Please login to your account</p>
-<br />
+            <br />
             <div className="gap-5">
               <input
                 type="email"
-                id="username"
-                placeholder="Phone number or email address"
+                placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-80 px-4 gap-5 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-400 outline-none"
               />
-              </div>
-              <br />
-              <div><input
+            </div>
+            <br />
+            <div>
+              <input
                 type="password"
-                id="password"
                 placeholder="Password"
-                className="w-80 px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-400 outline-none placeholder-normal"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-80 px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-400 outline-none"
               />
-              </div>
-            <br />
-            <div className="gap-5">
-              <button
-                type="button"
-                className="w-30 bg-blue-500 text-white py-2 rounded-md hover:bg-green-500 transition"
-              >
-                Log in
-              </button>
-              <a href="#" className=" flex-col gap-5 block text-sm text-gray-500 hover:text-green-500">
-                Forgot password?
-              </a>
             </div>
             <br />
+            <button
+              type="button"
+              onClick={handleLogin}
+              className="w-30 bg-blue-500 text-white py-2 rounded-md hover:bg-green-500 transition"
+            >
+              Log in
+            </button>
 
-            <div className="flex justify-center items-center space-x-2">
-              <p className="text-gray-600">Don't have an account?</p>
-              <button
-                type="button"
-                className="border border-green-500 text-green-500 px-4 py-1 rounded-md hover:bg-green-500 hover:text-white transition"
-              >
-                Create new
-              </button>
-            </div>
+            {error && <p className="text-red-500 mt-2">{error}</p>}
           </form>
         </div>
 
-        {/* Right Side (Info) */}
-        <div className="md:w-1/2 bg-gradient-to-r from-red-500 to-green-900 text-white flex items-center justify-center p-10">
+        {/* Right Side */}
+        <div className="md:w-1/2 bg-linear-to-r from-red-500 to-green-900 text-white flex items-center justify-center p-10">
           <div>
             <h4 className="text-2xl font-semibold mb-4">
               We are more than just a company
             </h4>
             <p className="text-sm leading-relaxed">
-              Empowering members to save, access loans, and grow their 
-              financial well-being through a secure and efficient SACCO platform.
+              Empowering members to save, access loans, and grow their financial
+              well-being through a secure and efficient SACCO platform.
             </p>
           </div>
         </div>
-
       </div>
     </section>
   );
 };
 
 export default Login;
-

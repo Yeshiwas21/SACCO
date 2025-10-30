@@ -5,7 +5,7 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   const rightLinks = [
-    { label: "Login", path: "#" },
+    { label: "Login", path: "/login" },
     { label: "Sign Up", path: "#" },
     { label: "Main Page", path: "/main" },
   ];
