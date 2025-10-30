@@ -165,7 +165,7 @@ const Members = () => {
           </h2>
           <button 
             onClick={() => setIsAddModalOpen(true)}
-            className="bg-amber-300 font-bold text-black px-4 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+            className="bg-amber-300 font-bold text-black px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
           >
             <UserPlus size={20} />
             Add New Member
@@ -304,10 +304,10 @@ const Members = () => {
         {isAddModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b bg-amber-300">
+              <div className="p-6  bg-amber-300">
                 <h3 className="text-lg font-semibold  text-gray-800">Add New Member</h3>
               </div>
-              <form onSubmit={handleAddMember} className="p-6">
+              <form onSubmit={handleAddMember} className="p-6"autoComplete="off" >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Personal Information */}
                   <div className="space-y-4">
@@ -591,13 +591,13 @@ const Members = () => {
                   <button
                     type="button"
                     onClick={() => setIsAddModalOpen(false)}
-                    className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                    className="px-4 py-2 text-black font-bold bg-blue-300 rounded-lg hover:bg-gray-600"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-amber-300 font-bold text-black rounded-lg hover:bg-green-700"
+                    className="px-4 py-2 bg-amber-300 font-bold text-black rounded-lg hover:bg-blue-700"
                   >
                     Add Member
                   </button>
@@ -609,10 +609,10 @@ const Members = () => {
 
         {/* View Member Modal */}
         {isViewModalOpen && selectedMember && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-neutral-900 bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-800">Member Details</h3>
+              <div className="p-6  bg-amber-300 border-gray-200">
+                <h3 className="text-lg font-semibold  text-gray-800">Member Details</h3>
               </div>
               <div className="p-6">
                 <div className="flex items-center gap-4 mb-6">
@@ -729,7 +729,7 @@ const Members = () => {
                 <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
                   <button
                     onClick={() => setIsViewModalOpen(false)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="px-4 py-2 bg-amber-300 font-bold text-black rounded-lg hover:bg-blue-700"
                   >
                     Close
                   </button>
