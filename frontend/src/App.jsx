@@ -4,6 +4,7 @@ import Home from "./pages/Home";
 import MainPage from "./pages/MainPage";
 import Members from "./pages/Members";
 import Savings from "./pages/Savings";
+import Withdraws from "./pages/Withdraws";
 import Loans from "./pages/Loans";
 import Fees from "./pages/Fees";
 import Repayments from "./pages/Repayments";
@@ -19,6 +20,7 @@ function App() {
         <Route path="/main" element={<MainPage />} />
         <Route path="/members" element={<Members />} />
         <Route path="/savings" element={<Savings />} />
+        <Route path="/withdraws" element={<Withdraws />} />
         <Route path="/loans" element={<Loans />} />
         <Route path="/fees" element={<Fees />} />
         <Route path="/repayments" element={<Repayments />} />
