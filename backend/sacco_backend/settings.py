@@ -83,8 +83,8 @@ TEMPLATES = [
 
 #Authentication Backends to use email instead of username
 AUTHENTICATION_BACKENDS = [
-    'users.backends.EmailBackend',  
-    'django.contrib.auth.backends.ModelBackend',  # fallback
+    'users.backends.EmailBackend',   # our custom backend
+    'django.contrib.auth.backends.ModelBackend',  # keep default for admin access
 ]
 
 WSGI_APPLICATION = 'sacco_backend.wsgi.application'
@@ -102,11 +102,14 @@ CORS_ALLOWED_ORIGINS = [
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'sacco',       # your database name
+        'USER': 'postgres',           # your postgres user
+        'PASSWORD': 'admin',   # your postgres password
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

@@ -9,7 +9,9 @@ import {
   Repeat,
   Percent,
   LogOut,
-  ArrowLeftRight
+  ArrowLeftRight,
+  User2,
+  User2Icon,
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -17,11 +19,16 @@ const Sidebar = () => {
     { label: "Dashboard", icon: <Home size={20} />, path: "/main" },
     { label: "Member", icon: <Users size={20} />, path: "/members" },
     { label: "Saving", icon: <DollarSign size={20} />, path: "/savings" },
-    { label: "Transaction", icon: <ArrowLeftRight size={20} />, path: "/withdraws" },
+    {
+      label: "Transaction",
+      icon: <ArrowLeftRight size={20} />,
+      path: "/withdraws",
+    },
     { label: "Loan", icon: <CreditCard size={20} />, path: "/loans" },
     { label: "Fee", icon: <FileText size={20} />, path: "/fees" },
     { label: "Repayment", icon: <Repeat size={20} />, path: "/repayments" },
     { label: "Dividend", icon: <Percent size={20} />, path: "/dividend" },
+    { label: "User", icon: <User2Icon size={20} />, path: "/user" },
     { label: "Logout", icon: <LogOut size={20} /> },
   ];
 
