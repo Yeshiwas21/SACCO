@@ -49,5 +49,5 @@ class UserListView(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get(self, request):
-        users = User.objects.all().values('id', 'first_name', 'last_name', 'email', 'user_type', 'is_active', 'date_joined')
+        users = User.objects.all().values('id', 'first_name', 'last_name', 'email', 'phone','user_type', 'is_active', 'date_joined')
         return Response(list(users), status=status.HTTP_200_OK)
