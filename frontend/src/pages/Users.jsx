@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import saccoLogo from "../assets/sacco-logo.svg";
 import {
@@ -19,29 +19,41 @@ const Users = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [users, setUsers] = useState([]);
 
-  const [users, setUsers] = useState([
-    {
-      id: "USR001",
-      firstName: "Admin",
-      lastName: "User",
-      email: "admin@email.com",
-      phone: "+251911000111",
-      role: "Admin",
-      status: "Active",
-      dateJoined: "2023-01-10",
-    },
-    {
-      id: "USR002",
-      firstName: "John",
-      lastName: "Doe",
-      email: "john@email.com",
-      phone: "+251911223344",
-      role: "Member",
-      status: "Active",
-      dateJoined: "2023-02-01",
-    },
-  ]);
+  // ✅ Fetch registered users from Django API
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:8080/api/users/");
+        if (!response.ok) throw new Error("Failed to fetch users");
+        const data = await response.json();
+
+        // Transform backend data for display
+        const formattedUsers = data.map((u) => ({
+          id: u.id,
+          firstName: u.first_name || "",
+          lastName: u.last_name || "",
+          email: u.email,
+          phone: u.phone || "-",
+          role: u.user_type
+            ? u.user_type.charAt(0).toUpperCase() +
+              u.user_type.slice(1).replace("_", " ")
+            : "Member",
+          status: u.is_active ? "Active" : "Inactive",
+          dateJoined: u.date_joined
+            ? new Date(u.date_joined).toISOString().split("T")[0]
+            : "-",
+        }));
+
+        setUsers(formattedUsers);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      }
+    };
+
+    fetchUsers();
+  }, []);
 
   const [newUser, setNewUser] = useState({
     firstName: "",
@@ -59,21 +71,35 @@ const Users = () => {
     setNewUser((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAddUser = (e) => {
+  // ✅ Register new user to backend
+  const handleAddUser = async (e) => {
     e.preventDefault();
-    const userId = `USR${String(users.length + 1).padStart(3, "0")}`;
-    setUsers([...users, { ...newUser, id: userId }]);
-    setIsAddModalOpen(false);
-    setNewUser({
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      password: "",
-      role: "Member",
-      status: "Active",
-      dateJoined: new Date().toISOString().split("T")[0],
-    });
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8080/api/users/register/",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: newUser.email,
+            password: newUser.password,
+            first_name: newUser.firstName,
+            last_name: newUser.lastName,
+            user_type: newUser.role.toLowerCase().replace(" ", "_"),
+          }),
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to register user");
+      const data = await response.json();
+
+      alert("✅ User registered successfully!");
+      setUsers([...users, { ...newUser, id: data.id }]);
+      setIsAddModalOpen(false);
+    } catch (error) {
+      console.error(error);
+      alert("❌ Registration failed");
+    }
   };
 
   const handleDeleteUser = (id) => {
@@ -183,7 +209,7 @@ const Users = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
                       {user.firstName} {user.lastName}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900">
@@ -200,15 +226,13 @@ const Users = () => {
                         className={`px-2 py-1 rounded-full text-xs font-semibold ${
                           user.status === "Active"
                             ? "bg-green-100 text-green-800"
-                            : user.status === "Inactive"
-                            ? "bg-gray-100 text-gray-800"
-                            : "bg-red-100 text-red-800"
+                            : "bg-gray-100 text-gray-800"
                         }`}
                       >
                         {user.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm font-medium flex gap-2">
+                    <td className="px-6 py-4 text-sm flex gap-2">
                       <button
                         onClick={() => handleViewUser(user)}
                         className="text-blue-600 hover:text-blue-800 p-1 rounded"
@@ -232,140 +256,7 @@ const Users = () => {
           </div>
         </section>
 
-        {/* Add User Modal */}
-        {isAddModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg max-w-lg w-full">
-              <div className="p-6 bg-amber-300">
-                <h3 className="text-lg font-semibold text-gray-800">
-                  Register New User
-                </h3>
-              </div>
-              <form onSubmit={handleAddUser} className="p-6 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      First Name
-                    </label>
-                    <input
-                      name="firstName"
-                      value={newUser.firstName}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Last Name
-                    </label>
-                    <input
-                      name="lastName"
-                      value={newUser.lastName}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={newUser.email}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone
-                  </label>
-                  <input
-                    name="phone"
-                    value={newUser.phone}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    name="password"
-                    value={newUser.password}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Role
-                    </label>
-                    <select
-                      name="role"
-                      value={newUser.role}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border rounded-lg"
-                    >
-                      <option value="Admin">Admin</option>
-                      <option value="Member">Member</option>
-                      <option value="Loan Officer">Loan Officer</option>
-                      <option value="Auditor">Auditor</option>
-                      <option value="Accountant">Accountant</option>
-                      <option value="Teller">Teller</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Status
-                    </label>
-                    <select
-                      name="status"
-                      value={newUser.status}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border rounded-lg"
-                    >
-                      <option value="Active">Active</option>
-                      <option value="Inactive">Inactive</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-3 mt-4">
-                  <button
-                    type="button"
-                    onClick={() => setIsAddModalOpen(false)}
-                    className="px-4 py-2 bg-gray-300 rounded-lg"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-amber-300 text-black font-bold rounded-lg hover:bg-blue-700"
-                  >
-                    Register
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* View User Modal */}
+        {/* ✅ View User Modal */}
         {isViewModalOpen && selectedUser && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg max-w-md w-full">
@@ -378,8 +269,8 @@ const Users = () => {
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                     <span className="text-blue-600 font-semibold">
-                      {selectedUser.firstName[0]}
-                      {selectedUser.lastName[0]}
+                      {selectedUser.firstName[0] || ""}
+                      {selectedUser.lastName[0] || ""}
                     </span>
                   </div>
                   <div>
