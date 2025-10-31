@@ -10,6 +10,7 @@ import Fees from "./pages/Fees";
 import Repayments from "./pages/Repayments";
 import Dividend from "./pages/Dividend";
 import Login from "./pages/Login";
+import Users from "./pages/Users";
 // import Reports from "./pages/Reports";
 
 function App() {
@@ -26,6 +27,7 @@ function App() {
         <Route path="/repayments" element={<Repayments />} />
         <Route path="/dividend" element={<Dividend />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/user" element={<Users />} />
       </Routes>
     </Router>
   );
