@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import saccoLogo from "../assets/sacco-logo.svg";
 import {
@@ -19,29 +19,40 @@ const Users = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [users, setUsers] = useState([]);
 
-  const [users, setUsers] = useState([
-    {
-      id: "USR001",
-      firstName: "Admin",
-      lastName: "User",
-      email: "admin@email.com",
-      phone: "+251911000111",
-      role: "Admin",
-      status: "Active",
-      dateJoined: "2023-01-10",
-    },
-    {
-      id: "USR002",
-      firstName: "John",
-      lastName: "Doe",
-      email: "john@email.com",
-      phone: "+251911223344",
-      role: "Member",
-      status: "Active",
-      dateJoined: "2023-02-01",
-    },
-  ]);
+  // Fetch users from API
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:8080/api/users/");
+        if (!response.ok) throw new Error("Failed to fetch users");
+        const data = await response.json();
+
+        const formattedUsers = data.map((u) => ({
+          id: u.id,
+          firstName: u.first_name || "",
+          lastName: u.last_name || "",
+          email: u.email,
+          phone: u.phone || "-",
+          role: u.user_type
+            ? u.user_type.charAt(0).toUpperCase() +
+              u.user_type.slice(1).replace("_", " ")
+            : "Member",
+          status: u.is_active ? "Active" : "Inactive",
+          dateJoined: u.date_joined
+            ? new Date(u.date_joined).toISOString().split("T")[0]
+            : "-",
+        }));
+
+        setUsers(formattedUsers);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      }
+    };
+
+    fetchUsers();
+  }, []);
 
   const [newUser, setNewUser] = useState({
     firstName: "",
@@ -59,21 +70,63 @@ const Users = () => {
     setNewUser((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAddUser = (e) => {
+  const handleAddUser = async (e) => {
     e.preventDefault();
-    const userId = `USR${String(users.length + 1).padStart(3, "0")}`;
-    setUsers([...users, { ...newUser, id: userId }]);
-    setIsAddModalOpen(false);
-    setNewUser({
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      password: "",
-      role: "Member",
-      status: "Active",
-      dateJoined: new Date().toISOString().split("T")[0],
-    });
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8080/api/users/register/",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: newUser.email,
+            password: newUser.password,
+            first_name: newUser.firstName,
+            last_name: newUser.lastName,
+            phone: newUser.phone,
+            user_type: newUser.role.toLowerCase().replace(" ", "_"),
+          }),
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to register user");
+      const data = await response.json();
+
+      const addedUser = {
+        id: data.id,
+        firstName: data.first_name,
+        lastName: data.last_name,
+        email: data.email,
+        phone: data.phone || "-",
+        role: data.user_type
+          ? data.user_type.charAt(0).toUpperCase() +
+            data.user_type.slice(1).replace("_", " ")
+          : "Member",
+        status: data.is_active ? "Active" : "Inactive",
+        dateJoined: data.date_joined
+          ? new Date(data.date_joined).toISOString().split("T")[0]
+          : "-",
+      };
+
+      setUsers([...users, addedUser]); // Update table immediately
+      setIsAddModalOpen(false);
+
+      setNewUser({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        password: "",
+        role: "Member",
+        status: "Active",
+        dateJoined: new Date().toISOString().split("T")[0],
+      });
+
+      alert("✅ User registered successfully!");
+    } catch (error) {
+      console.error(error);
+      alert("❌ Registration failed");
+    }
   };
 
   const handleDeleteUser = (id) => {
@@ -183,7 +236,7 @@ const Users = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
                       {user.firstName} {user.lastName}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900">
@@ -200,15 +253,13 @@ const Users = () => {
                         className={`px-2 py-1 rounded-full text-xs font-semibold ${
                           user.status === "Active"
                             ? "bg-green-100 text-green-800"
-                            : user.status === "Inactive"
-                            ? "bg-gray-100 text-gray-800"
-                            : "bg-red-100 text-red-800"
+                            : "bg-gray-100 text-gray-800"
                         }`}
                       >
                         {user.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm font-medium flex gap-2">
+                    <td className="px-6 py-4 text-sm flex gap-2">
                       <button
                         onClick={() => handleViewUser(user)}
                         className="text-blue-600 hover:text-blue-800 p-1 rounded"
@@ -291,7 +342,6 @@ const Users = () => {
                     name="phone"
                     value={newUser.phone}
                     onChange={handleInputChange}
-                    required
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -321,12 +371,12 @@ const Users = () => {
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border rounded-lg"
                     >
-                      <option value="Admin">Admin</option>
                       <option value="Member">Member</option>
+                      <option value="Admin">Admin</option>
                       <option value="Loan Officer">Loan Officer</option>
-                      <option value="Auditor">Auditor</option>
                       <option value="Accountant">Accountant</option>
                       <option value="Teller">Teller</option>
+                      <option value="Auditor">Auditor</option>
                     </select>
                   </div>
                   <div>
@@ -378,8 +428,8 @@ const Users = () => {
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                     <span className="text-blue-600 font-semibold">
-                      {selectedUser.firstName[0]}
-                      {selectedUser.lastName[0]}
+                      {selectedUser.firstName[0] || ""}
+                      {selectedUser.lastName[0] || ""}
                     </span>
                   </div>
                   <div>
