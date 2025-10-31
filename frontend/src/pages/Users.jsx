@@ -21,7 +21,7 @@ const Users = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [users, setUsers] = useState([]);
 
-  // ✅ Fetch registered users from Django API
+  // Fetch users from API
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -29,7 +29,6 @@ const Users = () => {
         if (!response.ok) throw new Error("Failed to fetch users");
         const data = await response.json();
 
-        // Transform backend data for display
         const formattedUsers = data.map((u) => ({
           id: u.id,
           firstName: u.first_name || "",
@@ -71,7 +70,6 @@ const Users = () => {
     setNewUser((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Register new user to backend
   const handleAddUser = async (e) => {
     e.preventDefault();
     try {
@@ -85,6 +83,7 @@ const Users = () => {
             password: newUser.password,
             first_name: newUser.firstName,
             last_name: newUser.lastName,
+            phone: newUser.phone,
             user_type: newUser.role.toLowerCase().replace(" ", "_"),
           }),
         }
@@ -93,9 +92,37 @@ const Users = () => {
       if (!response.ok) throw new Error("Failed to register user");
       const data = await response.json();
 
-      alert("✅ User registered successfully!");
-      setUsers([...users, { ...newUser, id: data.id }]);
+      const addedUser = {
+        id: data.id,
+        firstName: data.first_name,
+        lastName: data.last_name,
+        email: data.email,
+        phone: data.phone || "-",
+        role: data.user_type
+          ? data.user_type.charAt(0).toUpperCase() +
+            data.user_type.slice(1).replace("_", " ")
+          : "Member",
+        status: data.is_active ? "Active" : "Inactive",
+        dateJoined: data.date_joined
+          ? new Date(data.date_joined).toISOString().split("T")[0]
+          : "-",
+      };
+
+      setUsers([...users, addedUser]); // Update table immediately
       setIsAddModalOpen(false);
+
+      setNewUser({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        password: "",
+        role: "Member",
+        status: "Active",
+        dateJoined: new Date().toISOString().split("T")[0],
+      });
+
+      alert("✅ User registered successfully!");
     } catch (error) {
       console.error(error);
       alert("❌ Registration failed");
@@ -256,7 +283,139 @@ const Users = () => {
           </div>
         </section>
 
-        {/* ✅ View User Modal */}
+        {/* Add User Modal */}
+        {isAddModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-lg w-full">
+              <div className="p-6 bg-amber-300">
+                <h3 className="text-lg font-semibold text-gray-800">
+                  Register New User
+                </h3>
+              </div>
+              <form onSubmit={handleAddUser} className="p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      First Name
+                    </label>
+                    <input
+                      name="firstName"
+                      value={newUser.firstName}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Last Name
+                    </label>
+                    <input
+                      name="lastName"
+                      value={newUser.lastName}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={newUser.email}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Phone
+                  </label>
+                  <input
+                    name="phone"
+                    value={newUser.phone}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    name="password"
+                    value={newUser.password}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Role
+                    </label>
+                    <select
+                      name="role"
+                      value={newUser.role}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    >
+                      <option value="Member">Member</option>
+                      <option value="Admin">Admin</option>
+                      <option value="Loan Officer">Loan Officer</option>
+                      <option value="Accountant">Accountant</option>
+                      <option value="Teller">Teller</option>
+                      <option value="Auditor">Auditor</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Status
+                    </label>
+                    <select
+                      name="status"
+                      value={newUser.status}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddModalOpen(false)}
+                    className="px-4 py-2 bg-gray-300 rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-amber-300 text-black font-bold rounded-lg hover:bg-blue-700"
+                  >
+                    Register
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* View User Modal */}
         {isViewModalOpen && selectedUser && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg max-w-md w-full">
