@@ -4,6 +4,10 @@ from rest_framework import status
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import get_user_model
+from rest_framework import generics, permissions
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from .models import Users
+from .serializers import UserSerializer
 
 User = get_user_model()
 
@@ -30,3 +34,20 @@ class LoginView(APIView):
             })
         else:
             return Response({'error': 'Invalid email or password'}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+class RegisterUserView(generics.CreateAPIView):
+    """
+    Handles user registration via POST request.
+    """
+    queryset = Users.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.AllowAny]
+
+
+class UserListView(APIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get(self, request):
+        users = User.objects.all().values('id', 'first_name', 'last_name', 'email', 'phone','user_type', 'is_active', 'date_joined')
+        return Response(list(users), status=status.HTTP_200_OK)
