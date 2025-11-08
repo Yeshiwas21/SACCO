@@ -11,6 +11,7 @@ class MemberSerializer(serializers.ModelSerializer):
         fields = [
             'member_id',
             'first_name',
+            'middle_name',
             'last_name',
             'full_name',
             'gender',
@@ -34,8 +35,8 @@ class MemberSerializer(serializers.ModelSerializer):
         read_only_fields = ['member_id', 'created_at', 'updated_at']
     
     def validate_national_id(self, value):
-        """Validate national ID format"""
-        if not re.match(r'^[0-9]{9,20}$', value):
+        """Validate national ID format if provided"""
+        if value and not re.match(r'^[0-9]{9,20}$', value):
             raise ValidationError('National ID must contain only numbers and be 9-20 digits long')
         return value
     
@@ -66,7 +67,7 @@ class MemberSerializer(serializers.ModelSerializer):
             if qs.exists():
                 raise ValidationError({'phone_number': 'A member with this phone number already exists.'})
         
-        # Check if national ID already exists
+        # Check if national ID already exists (only if provided)
         if national_id:
             qs = Member.objects.filter(national_id=national_id)
             if instance:
@@ -83,12 +84,16 @@ class MemberCreateSerializer(MemberSerializer):
         read_only_fields = ['member_id', 'created_at', 'updated_at']
 
 class MemberExportSerializer(serializers.ModelSerializer):
+    full_name = serializers.ReadOnlyField()
+    
     class Meta:
         model = Member
         fields = [
             'member_id',
             'first_name',
+            'middle_name',
             'last_name',
+            'full_name',
             'phone_number',
             'gender',
             'membership_status',

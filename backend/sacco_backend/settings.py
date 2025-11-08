@@ -32,6 +32,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -41,9 +42,8 @@ INSTALLED_APPS = [
     
     # Third party apps
     'rest_framework',
-    'rest_framework.authtoken',
     'corsheaders',
-    # 'django_filters',  # ADDED: django_filters app
+    'django_filters',
     
     # Local apps
     'users',
@@ -188,3 +188,20 @@ AUTH_USER_MODEL = 'users.Users'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+"""
+
+# Optional: Add Jazzmin settings for better UI
+JAZZMIN_SETTINGS = {
+    "site_title": "SACCO Admin",
+    "site_header": "SACCO Administration",
+    "site_brand": "SACCO",
+    "welcome_sign": "Welcome to SACCO Admin Panel",
+    "copyright": "SACCO Ltd",
+    "show_ui_builder": True,
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "theme": "light",
+}
+"""

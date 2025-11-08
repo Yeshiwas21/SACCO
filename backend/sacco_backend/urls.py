@@ -2,11 +2,17 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import JsonResponse
+
+
+def simple_stats(request):
+    return JsonResponse({'message': 'Direct stats endpoint working!', 'total': 0})
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/users/', include('users.urls')),
     path('api/members/', include('members.urls')),
+    path('api/savings/', include('savings.urls')),
 ]
 
 if settings.DEBUG:
