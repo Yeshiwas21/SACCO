@@ -5,6 +5,7 @@ from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import get_user_model
 from rest_framework import generics, permissions
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from .models import Users
 from .serializers import UserSerializer
@@ -36,14 +37,33 @@ class LoginView(APIView):
             return Response({'error': 'Invalid email or password'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
+from rest_framework import generics, permissions
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.response import Response
+from .models import Users
+from .serializers import UserSerializer
+
 class RegisterUserView(generics.CreateAPIView):
-    """
-    Handles user registration via POST request.
-    """
     queryset = Users.objects.all()
     serializer_class = UserSerializer
     permission_classes = [permissions.AllowAny]
+    parser_classes = (MultiPartParser, FormParser)
 
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+
+        # Robust handling of is_active
+        status = data.get("is_active", "Active")
+        if str(status).lower() in ["active", "true", "1"]:  # treat multiple forms
+            data["is_active"] = True
+        else:
+            data["is_active"] = False
+
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+
+        return Response(serializer.data, status=201)
 
 class UserListView(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
