@@ -135,6 +135,7 @@ const memberAPI = {
     return response.blob();
   },
 };
+
 // Notification Component
 const Notification = ({ message, type, onClose }) => {
   if (!message) return null;
@@ -266,12 +267,12 @@ const MemberDetailView = ({
             <div className="flex items-center gap-4 p-6 border-b border-gray-200">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
                 <span className="text-blue-600 font-semibold text-xl">
-                  {currentMember.first_name[0]}{currentMember.last_name[0]}
+                  {currentMember.first_name[0]}{currentMember.middle_name ? currentMember.middle_name[0] : ''}{currentMember.last_name[0]}
                 </span>
               </div>
               <div className="flex-1">
                 <h3 className="text-xl font-bold text-gray-800 mb-1">
-                  {currentMember.first_name} {currentMember.last_name}
+                  {currentMember.first_name} {currentMember.middle_name ? currentMember.middle_name + ' ' : ''}{currentMember.last_name}
                 </h3>
                 <div className="flex items-center gap-4 text-sm">
                   <span className="text-gray-600">ID: {currentMember.member_id}</span>
@@ -294,7 +295,7 @@ const MemberDetailView = ({
                 <div className="space-y-4">
                   <h4 className="font-semibold text-gray-800 border-b pb-2">Personal Information</h4>
                   <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                       <div>
                         <label className="block text-sm text-gray-600 mb-1">First Name</label>
                         {isEditing ? (
@@ -307,6 +308,20 @@ const MemberDetailView = ({
                           />
                         ) : (
                           <p className="font-medium">{currentMember.first_name}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Middle Name</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            name="middle_name"
+                            value={currentMember.middle_name || ''}
+                            onChange={onEditChange}
+                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                          />
+                        ) : (
+                          <p className="font-medium">{currentMember.middle_name || 'N/A'}</p>
                         )}
                       </div>
                       <div>
@@ -622,12 +637,12 @@ const AddMemberView = ({
           <div className="flex items-center gap-4 p-6 border-b border-gray-200">
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
               <span className="text-blue-600 font-semibold text-xl">
-                {newMember.first_name ? newMember.first_name[0] : 'N'}{newMember.last_name ? newMember.last_name[0] : 'M'}
+                {newMember.first_name ? newMember.first_name[0] : 'N'}{newMember.middle_name ? newMember.middle_name[0] : ''}{newMember.last_name ? newMember.last_name[0] : 'M'}
               </span>
             </div>
             <div className="flex-1">
               <h3 className="text-xl font-bold text-gray-800 mb-1">
-                {newMember.first_name || 'New'} {newMember.last_name || 'Member'}
+                {newMember.first_name || 'New'} {newMember.middle_name ? newMember.middle_name + ' ' : ''}{newMember.last_name || 'Member'}
               </h3>
               <div className="flex items-center gap-4 text-sm">
                 <span className="text-gray-600">New Member Registration</span>
@@ -644,7 +659,7 @@ const AddMemberView = ({
               <div className="space-y-4">
                 <h4 className="font-semibold text-gray-800 border-b pb-2">Personal Information</h4>
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm text-gray-600 mb-1">
                         First Name *
@@ -655,6 +670,18 @@ const AddMemberView = ({
                         value={newMember.first_name}
                         onChange={onInputChange}
                         required
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">
+                        Middle Name
+                      </label>
+                      <input
+                        type="text"
+                        name="middle_name"
+                        value={newMember.middle_name}
+                        onChange={onInputChange}
                         className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
@@ -941,7 +968,7 @@ const MemberPrintView = ({ member, onClose }) => {
           {/* Member Header */}
           <div className="flex justify-between items-start border-b pb-4 print:border-b-2 print:border-black">
             <div>
-              <h2 className="text-xl font-bold print:text-2xl">{member.first_name} {member.last_name}</h2>
+              <h2 className="text-xl font-bold print:text-2xl">{member.first_name} {member.middle_name ? member.middle_name + ' ' : ''}{member.last_name}</h2>
               <div className="flex gap-4 mt-2 text-sm print:text-base">
                 <span>ID: {member.member_id}</span>
                 <span>National ID: {member.national_id}</span>
@@ -973,7 +1000,7 @@ const MemberPrintView = ({ member, onClose }) => {
                 </tr>
                 <tr>
                   <td className="border border-gray-300 px-4 py-2 font-medium">Full Name</td>
-                  <td className="border border-gray-300 px-4 py-2">{member.first_name} {member.last_name}</td>
+                  <td className="border border-gray-300 px-4 py-2">{member.first_name} {member.middle_name ? member.middle_name + ' ' : ''}{member.last_name}</td>
                 </tr>
                 <tr>
                   <td className="border border-gray-300 px-4 py-2 font-medium">Gender</td>
@@ -1118,6 +1145,7 @@ const Members = () => {
   // New member state
   const [newMember, setNewMember] = useState({
     first_name: "",
+    middle_name: "",
     last_name: "",
     gender: "",
     date_of_birth: "",
@@ -1169,7 +1197,7 @@ const Members = () => {
   // Filter members locally for immediate feedback
   const filteredMembers = members.filter(member => {
     const matchesSearch = 
-      `${member.first_name} ${member.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      `${member.first_name} ${member.middle_name || ''} ${member.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.phone_number.includes(searchTerm) ||
       member.national_id.includes(searchTerm) ||
       member.member_id.toLowerCase().includes(searchTerm.toLowerCase());
@@ -1211,6 +1239,7 @@ const Members = () => {
     // Reset new member form when going back
     setNewMember({
       first_name: "",
+      middle_name: "",
       last_name: "",
       gender: "",
       date_of_birth: "",
@@ -1284,6 +1313,7 @@ const Members = () => {
       setMembers(prev => [savedMember, ...prev]);
       setNewMember({
         first_name: "",
+        middle_name: "",
         last_name: "",
         gender: "",
         date_of_birth: "",
@@ -1663,12 +1693,12 @@ const Members = () => {
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
                             <span className="text-blue-600 font-medium">
-                              {member.first_name[0]}{member.last_name[0]}
+                              {member.first_name[0]}{member.middle_name ? member.middle_name[0] : ''}{member.last_name[0]}
                             </span>
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">
-                              {member.first_name} {member.last_name}
+                              {member.first_name} {member.middle_name ? member.middle_name + ' ' : ''}{member.last_name}
                             </div>
                             <div className="text-sm text-gray-500">
                               {member.member_id}

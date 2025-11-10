@@ -8,13 +8,19 @@ class MemberAdmin(admin.ModelAdmin):
         'membership_status', 'membership_date', 'created_at'
     ]
     list_filter = ['membership_status', 'gender', 'occupation', 'city', 'created_at']
-    search_fields = ['first_name', 'last_name', 'phone_number', 'national_id', 'member_id']
+    search_fields = [
+        'first_name', 'middle_name', 'last_name', 
+        'phone_number', 'national_id', 'member_id'
+    ]
     readonly_fields = ['created_at', 'updated_at', 'member_id']
+    list_per_page = 20
+    ordering = ['-created_at']
+    
     fieldsets = (
         ('Personal Information', {
             'fields': (
-                'first_name', 'last_name', 'gender', 'date_of_birth', 
-                'national_id', 'occupation'
+                'first_name', 'middle_name', 'last_name', 'gender', 
+                'date_of_birth', 'national_id', 'occupation'
             )
         }),
         ('Contact Information', {
@@ -37,3 +43,9 @@ class MemberAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+    
+    def full_name(self, obj):
+        """Display full name in list view"""
+        return obj.full_name
+    full_name.short_description = 'Full Name'
+    full_name.admin_order_field = 'first_name'

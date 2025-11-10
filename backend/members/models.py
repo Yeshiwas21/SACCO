@@ -32,6 +32,7 @@ class Member(models.Model):
     
     # Personal Information
     first_name = models.CharField(max_length=100)
+    middle_name = models.CharField(max_length=100, blank=True, null=True)  # Added middle name
     last_name = models.CharField(max_length=100)
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
     date_of_birth = models.DateField()
@@ -81,11 +82,22 @@ class Member(models.Model):
         ]
     
     def __str__(self):
-        return f"{self.first_name} {self.last_name} ({self.member_id})"
+        return f"{self.first_name} {self.middle_name + ' ' if self.middle_name else ''}{self.last_name} ({self.member_id})"
     
     @property
     def full_name(self):
+        """Return full name including middle name if available"""
+        if self.middle_name:
+            return f"{self.first_name} {self.middle_name} {self.last_name}"
         return f"{self.first_name} {self.last_name}"
+    
+    @property
+    def initials(self):
+        """Return initials for avatar display"""
+        first_initial = self.first_name[0] if self.first_name else ''
+        middle_initial = self.middle_name[0] if self.middle_name else ''
+        last_initial = self.last_name[0] if self.last_name else ''
+        return f"{first_initial}{middle_initial}{last_initial}"
     
     @staticmethod
     def is_valid_ethiopian_phone(phone):
@@ -111,7 +123,7 @@ class Member(models.Model):
                     new_number = 1
             else:
                 new_number = 1
-            self.member_id = f"M{new_number:03d}"
+            self.member_id = f"M{new_number:04d}"
         
         # Normalize phone numbers
         self.phone_number = self.normalize_phone_number(self.phone_number)
@@ -131,3 +143,7 @@ class Member(models.Model):
             return '+251' + phone
         else:
             return phone
+
+    def get_searchable_name(self):
+        """Return name formatted for search functionality"""
+        return f"{self.first_name} {self.middle_name or ''} {self.last_name}".strip()

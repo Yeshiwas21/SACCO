@@ -1,7 +1,11 @@
-from django.urls import path
-from .views import SavingRegisterView, SavingListView
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from . import views
+
+router = DefaultRouter()
+router.register(r'savings', views.SavingViewSet, basename='saving')
+router.register(r'transactions', views.SavingTransactionViewSet, basename='transaction')
 
 urlpatterns = [
-    path('register/', SavingRegisterView.as_view(), name="saving-register"),
-    path('', SavingListView.as_view(), name='saving-list')
+    path('', include(router.urls)),
 ]
