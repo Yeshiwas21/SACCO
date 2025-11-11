@@ -4,19 +4,28 @@ from .models import Users
 
 class CustomUserAdmin(UserAdmin):
     model = Users
-    list_display = ('email', 'user_type', 'is_staff', 'is_active')
-    list_filter = ('user_type', 'is_staff', 'is_active')
-    search_fields = ('email',)
-    ordering = ('email',)
+    # Fields to display in admin list view
+    list_display = ('email', 'first_name', 'last_name', 'phone', 'user_type', 'is_staff', 'is_active')
+    # Fields to filter by
+    list_filter = ('is_staff', 'is_active', 'user_type')
+    
+    # Fields in the add/edit form
     fieldsets = (
-        (None, {'fields': ('email', 'password', 'user_type', 'profile_image')}),
-        ('Permissions', {'fields': ('is_staff', 'is_active', 'is_superuser', 'groups', 'user_permissions')}),
+        (None, {'fields': ('email', 'password')}),
+        ('Personal Info', {'fields': ('first_name', 'last_name', 'phone', 'user_type', 'profile_image')}),
+        ('Permissions', {'fields': ('is_staff', 'is_superuser', 'is_active', 'groups', 'user_permissions')}),
+        ('Important dates', {'fields': ('last_login', 'date_joined')}),
     )
+    
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'password1', 'password2', 'user_type', 'profile_image', 'is_staff', 'is_active')}
+            'fields': ('email', 'first_name', 'last_name', 'phone', 'user_type', 'profile_image', 'password1', 'password2', 'is_staff', 'is_active')}
         ),
     )
+    
+    search_fields = ('email', 'first_name', 'last_name', 'phone')
+    ordering = ('email',)
+
 
 admin.site.register(Users, CustomUserAdmin)
