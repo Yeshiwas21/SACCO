@@ -61,7 +61,8 @@ const Users = () => {
     phone: "",
     password: "",
     role: "Member",
-    status: "Active",
+    status: "Active", // default is active
+    profile_image: null,
     dateJoined: new Date().toISOString().split("T")[0],
   });
 
@@ -72,24 +73,34 @@ const Users = () => {
 
   const handleAddUser = async (e) => {
     e.preventDefault();
+
     try {
+      const formData = new FormData();
+      formData.append("email", newUser.email);
+      formData.append("password", newUser.password);
+      formData.append("first_name", newUser.firstName);
+      formData.append("last_name", newUser.lastName);
+      formData.append("phone", newUser.phone);
+      formData.append(
+        "user_type",
+        newUser.role.toLowerCase().replace(" ", "_")
+      );
+      formData.append("is_active", newUser.status); // send "Active" or "Inactive"
+
+      if (newUser.profile_image) {
+        formData.append("profile_image", newUser.profile_image);
+      }
+
       const response = await fetch(
         "http://127.0.0.1:8080/api/users/register/",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: newUser.email,
-            password: newUser.password,
-            first_name: newUser.firstName,
-            last_name: newUser.lastName,
-            phone: newUser.phone,
-            user_type: newUser.role.toLowerCase().replace(" ", "_"),
-          }),
+          body: formData,
         }
       );
 
       if (!response.ok) throw new Error("Failed to register user");
+
       const data = await response.json();
 
       const addedUser = {
@@ -108,7 +119,7 @@ const Users = () => {
           : "-",
       };
 
-      setUsers([...users, addedUser]); // Update table immediately
+      setUsers([...users, addedUser]);
       setIsAddModalOpen(false);
 
       setNewUser({
@@ -119,6 +130,7 @@ const Users = () => {
         password: "",
         role: "Member",
         status: "Active",
+        profile_image: null,
         dateJoined: new Date().toISOString().split("T")[0],
       });
 
@@ -292,7 +304,11 @@ const Users = () => {
                   Register New User
                 </h3>
               </div>
-              <form onSubmit={handleAddUser} className="p-6 space-y-4">
+              <form
+                onSubmit={handleAddUser}
+                className="p-6 space-y-4"
+                encType="multipart/form-data"
+              >
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">

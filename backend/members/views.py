@@ -16,7 +16,10 @@ class MemberViewSet(viewsets.ModelViewSet):
     queryset = Member.objects.all()
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = MemberFilter
-    search_fields = ['first_name', 'last_name', 'phone_number', 'national_id', 'member_id']
+    search_fields = [
+        'first_name', 'middle_name', 'last_name', 
+        'phone_number', 'national_id', 'member_id'
+    ]
     ordering_fields = ['first_name', 'last_name', 'membership_date', 'created_at']
     ordering = ['created_at']
     lookup_field = 'member_id'
@@ -62,7 +65,7 @@ class MemberViewSet(viewsets.ModelViewSet):
         
         # Write header
         writer.writerow([
-            'Member ID', 'Full Name', 'Phone', 'Gender', 'Status', 
+            'Member ID', 'First Name', 'Middle Name', 'Last Name', 'Full Name', 'Phone', 'Gender', 'Status', 
             'Email', 'National ID', 'Date Joined', 'Occupation', 'Emergency Contact', 'Emergency Phone'
         ])
         
@@ -70,12 +73,15 @@ class MemberViewSet(viewsets.ModelViewSet):
         for member in filtered_queryset:
             writer.writerow([
                 member.member_id,
+                member.first_name,
+                member.middle_name or '',
+                member.last_name,
                 member.full_name,
                 member.phone_number,
                 member.gender,
                 member.membership_status,
                 member.email or '',
-                member.national_id,
+                member.national_id or '',
                 member.membership_date.strftime('%Y-%m-%d') if member.membership_date else '',
                 member.occupation,
                 member.emergency_contact_name,

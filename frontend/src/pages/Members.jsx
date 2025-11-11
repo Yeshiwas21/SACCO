@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import saccoLogo from "../assets/sacco-logo.svg";
 import { 
@@ -21,8 +21,150 @@ import {
   ChevronsRight,
   ArrowLeft,
   Save,
-  Printer
+  Printer,
+  Loader,
+  AlertCircle,
+  CheckCircle,
+  RefreshCw
 } from "lucide-react";
+
+// Updated API Configuration without authentication
+const API_BASE_URL = 'http://localhost:8000/api';
+
+// Helper function to handle API calls
+const handleApiCall = async (url, options = {}) => {
+  try {
+    const defaultOptions = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    };
+
+    const response = await fetch(url, { ...defaultOptions, ...options });
+    
+    if (!response.ok) {
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.detail || errorData.message || JSON.stringify(errorData);
+      } catch (e) {
+        errorMessage = response.statusText || errorMessage;
+      }
+      throw new Error(errorMessage);
+    }
+    
+    if (response.status === 204) {
+      return null;
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('API call failed:', error);
+    throw error;
+  }
+};
+
+const memberAPI = {
+  // Get all members with pagination and filters
+  getMembers: async (page = 1, pageSize = 10, filters = {}) => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      page_size: pageSize.toString(),
+    });
+
+    // Add non-empty filters
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value && value !== 'undefined') {
+        params.append(key, value);
+      }
+    });
+    
+    return handleApiCall(`${API_BASE_URL}/members/members/?${params}`);
+  },
+
+  // Test API connection
+  testConnection: async () => {
+    return handleApiCall(`${API_BASE_URL}/members/members/test/`);
+  },
+
+  // Get single member
+  getMember: async (memberId) => {
+    return handleApiCall(`${API_BASE_URL}/members/members/${memberId}/`);
+  },
+
+  // Create member
+  createMember: async (memberData) => {
+    return handleApiCall(`${API_BASE_URL}/members/members/`, {
+      method: 'POST',
+      body: JSON.stringify(memberData),
+    });
+  },
+
+  // Update member
+  updateMember: async (memberId, memberData) => {
+    return handleApiCall(`${API_BASE_URL}/members/members/${memberId}/`, {
+      method: 'PUT',
+      body: JSON.stringify(memberData),
+    });
+  },
+
+  // Delete member
+  deleteMember: async (memberId) => {
+    return handleApiCall(`${API_BASE_URL}/members/members/${memberId}/`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Export members
+  exportMembers: async (filters = {}) => {
+    const params = new URLSearchParams();
+    
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value && value !== 'undefined') {
+        params.append(key, value);
+      }
+    });
+
+    const response = await fetch(`${API_BASE_URL}/members/members/export/?${params}`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to export members');
+    }
+    
+    return response.blob();
+  },
+};
+
+// Notification Component
+const Notification = ({ message, type, onClose }) => {
+  if (!message) return null;
+
+  const bgColor = type === 'error' ? 'bg-red-100 border-red-400 text-red-700' : 
+                 type === 'success' ? 'bg-green-100 border-green-400 text-green-700' : 
+                 'bg-blue-100 border-blue-400 text-blue-700';
+
+  const Icon = type === 'error' ? AlertCircle : CheckCircle;
+
+  return (
+    <div className={`fixed top-4 right-4 z-50 border-l-4 p-4 rounded-lg shadow-lg ${bgColor} max-w-md`}>
+      <div className="flex items-center gap-3">
+        <Icon size={20} />
+        <p className="flex-1 text-sm font-medium">{message}</p>
+        <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <X size={16} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Loading Spinner Component
+const LoadingSpinner = ({ size = 24 }) => (
+  <div className="flex justify-center items-center">
+    <Loader size={size} className="animate-spin text-amber-500" />
+  </div>
+);
 
 // Member Detail View Component
 const MemberDetailView = ({ 
@@ -37,7 +179,9 @@ const MemberDetailView = ({
   isEditing,
   editedMember,
   onEditChange,
-  onPrint
+  onPrint,
+  isLoading,
+  isSaving
 }) => {
   if (!member) return null;
 
@@ -78,14 +222,16 @@ const MemberDetailView = ({
               <>
                 <button
                   onClick={() => onSave(currentMember)}
-                  className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2 text-sm"
+                  disabled={isSaving}
+                  className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Save size={16} />
-                  Save Changes
+                  {isSaving ? <Loader size={16} className="animate-spin" /> : <Save size={16} />}
+                  {isSaving ? 'Saving...' : 'Save Changes'}
                 </button>
                 <button
                   onClick={() => onEdit(null)}
-                  className="bg-gray-500 text-white px-3 py-2 rounded-lg hover:bg-gray-600 transition text-sm"
+                  disabled={isSaving}
+                  className="bg-gray-500 text-white px-3 py-2 rounded-lg hover:bg-gray-600 transition text-sm disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -100,7 +246,7 @@ const MemberDetailView = ({
                   Edit Member
                 </button>
                 <button
-                  onClick={() => onDelete(member.id)}
+                  onClick={() => onDelete(member.member_id)}
                   className="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition flex items-center gap-2 text-sm"
                 >
                   <Trash2 size={16} />
@@ -111,305 +257,316 @@ const MemberDetailView = ({
           </div>
         </header>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center gap-4 p-6 border-b border-gray-200">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-              <span className="text-blue-600 font-semibold text-xl">
-                {currentMember.firstName[0]}{currentMember.lastName[0]}
-              </span>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-xl font-bold text-gray-800 mb-1">
-                {currentMember.firstName} {currentMember.lastName}
-              </h3>
-              <div className="flex items-center gap-4 text-sm">
-                <span className="text-gray-600">ID: {currentMember.id}</span>
-                <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
-                  currentMember.membershipStatus === 'Active' 
-                    ? 'bg-green-100 text-green-800'
-                    : currentMember.membershipStatus === 'Inactive'
-                    ? 'bg-gray-100 text-gray-800'
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  {currentMember.membershipStatus}
+        {isLoading ? (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12">
+            <LoadingSpinner size={48} />
+            <p className="text-center mt-4 text-gray-600">Loading member details...</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center gap-4 p-6 border-b border-gray-200">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                <span className="text-blue-600 font-semibold text-xl">
+                  {currentMember.first_name[0]}{currentMember.middle_name ? currentMember.middle_name[0] : ''}{currentMember.last_name[0]}
                 </span>
               </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-gray-800 mb-1">
+                  {currentMember.first_name} {currentMember.middle_name ? currentMember.middle_name + ' ' : ''}{currentMember.last_name}
+                </h3>
+                <div className="flex items-center gap-4 text-sm">
+                  <span className="text-gray-600">ID: {currentMember.member_id}</span>
+                  <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
+                    currentMember.membership_status === 'Active' 
+                      ? 'bg-green-100 text-green-800'
+                      : currentMember.membership_status === 'Inactive'
+                      ? 'bg-gray-100 text-gray-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {currentMember.membership_status}
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div className="p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Personal Information */}
-              <div className="space-y-4">
-                <h4 className="font-semibold text-gray-800 border-b pb-2">Personal Information</h4>
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm text-gray-600 mb-1">First Name</label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          name="firstName"
-                          value={currentMember.firstName}
-                          onChange={onEditChange}
-                          className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                        />
-                      ) : (
-                        <p className="font-medium">{currentMember.firstName}</p>
-                      )}
+            <div className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Personal Information */}
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-gray-800 border-b pb-2">Personal Information</h4>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">First Name</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            name="first_name"
+                            value={currentMember.first_name}
+                            onChange={onEditChange}
+                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                          />
+                        ) : (
+                          <p className="font-medium">{currentMember.first_name}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Middle Name</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            name="middle_name"
+                            value={currentMember.middle_name || ''}
+                            onChange={onEditChange}
+                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                          />
+                        ) : (
+                          <p className="font-medium">{currentMember.middle_name || 'N/A'}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Last Name</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            name="last_name"
+                            value={currentMember.last_name}
+                            onChange={onEditChange}
+                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                          />
+                        ) : (
+                          <p className="font-medium">{currentMember.last_name}</p>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm text-gray-600 mb-1">Last Name</label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          name="lastName"
-                          value={currentMember.lastName}
-                          onChange={onEditChange}
-                          className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                        />
-                      ) : (
-                        <p className="font-medium">{currentMember.lastName}</p>
-                      )}
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm text-gray-600 mb-1">Gender</label>
-                      {isEditing ? (
-                        <select
-                          name="gender"
-                          value={currentMember.gender}
-                          onChange={onEditChange}
-                          className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                        >
-                          <option value="Male">Male</option>
-                          <option value="Female">Female</option>
-                        </select>
-                      ) : (
-                        <p className="font-medium">{currentMember.gender}</p>
-                      )}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Gender</label>
+                        {isEditing ? (
+                          <select
+                            name="gender"
+                            value={currentMember.gender}
+                            onChange={onEditChange}
+                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                          >
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                          </select>
+                        ) : (
+                          <p className="font-medium">{currentMember.gender}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Date of Birth</label>
+                        {isEditing ? (
+                          <input
+                            type="date"
+                            name="date_of_birth"
+                            value={currentMember.date_of_birth}
+                            onChange={onEditChange}
+                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                          />
+                        ) : (
+                          <p className="font-medium">{currentMember.date_of_birth}</p>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm text-gray-600 mb-1">Date of Birth</label>
-                      {isEditing ? (
-                        <input
-                          type="date"
-                          name="dateOfBirth"
-                          value={currentMember.dateOfBirth}
-                          onChange={onEditChange}
-                          className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                        />
-                      ) : (
-                        <p className="font-medium">{currentMember.dateOfBirth}</p>
-                      )}
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm text-gray-600 mb-1">National ID</label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          name="nationalId"
-                          value={currentMember.nationalId}
-                          onChange={onEditChange}
-                          className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                        />
-                      ) : (
-                        <p className="font-medium">{currentMember.nationalId}</p>
-                      )}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">National ID</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            name="national_id"
+                            value={currentMember.national_id}
+                            onChange={onEditChange}
+                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                          />
+                        ) : (
+                          <p className="font-medium">{currentMember.national_id}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Occupation</label>
+                        {isEditing ? (
+                          <select
+                            name="occupation"
+                            value={currentMember.occupation}
+                            onChange={onEditChange}
+                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                          >
+                            <option value="Member">Member</option>
+                            <option value="Admin">Admin</option>
+                            <option value="Officer">Officer</option>
+                            <option value="Accountant">Accountant</option>
+                          </select>
+                        ) : (
+                          <p className="font-medium">{currentMember.occupation}</p>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm text-gray-600 mb-1">Occupation</label>
-                      {isEditing ? (
-                        <select
-                          name="occupation"
-                          value={currentMember.occupation}
-                          onChange={onEditChange}
-                          className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                        >
-                          <option value="Member">Member</option>
-                          <option value="Admin">Admin</option>
-                          <option value="Officer">Officer</option>
-                          <option value="Accountant">Accountant</option>
-                        </select>
-                      ) : (
-                        <p className="font-medium">{currentMember.occupation}</p>
-                      )}
-                    </div>
-                  </div>
 
-                  {/* Member ID and Date Joined */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm text-gray-600 mb-1">Member ID</label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          name="memberId"
-                          value={currentMember.memberId}
-                          onChange={onEditChange}
-                          className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                        />
-                      ) : (
-                        <p className="font-medium">{currentMember.memberId}</p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm text-gray-600 mb-1">Date Joined</label>
-                      {isEditing ? (
-                        <input
-                          type="date"
-                          name="membershipDate"
-                          value={currentMember.membershipDate}
-                          onChange={onEditChange}
-                          className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                        />
-                      ) : (
-                        <p className="font-medium">{currentMember.membershipDate}</p>
-                      )}
+                    {/* Member ID and Date Joined */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Member ID</label>
+                        <p className="font-medium">{currentMember.member_id}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Date Joined</label>
+                        {isEditing ? (
+                          <input
+                            type="date"
+                            name="membership_date"
+                            value={currentMember.membership_date}
+                            onChange={onEditChange}
+                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                          />
+                        ) : (
+                          <p className="font-medium">{currentMember.membership_date}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Contact & Address Information */}
-              <div className="space-y-4">
-                <h4 className="font-semibold text-gray-800 border-b pb-2">Contact & Address Information</h4>
+                {/* Contact & Address Information */}
                 <div className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <Phone size={16} className="text-gray-400" />
-                      <div className="flex-1">
-                        <label className="block text-sm text-gray-600 mb-1">Phone Number</label>
-                        {isEditing ? (
-                          <input
-                            type="tel"
-                            name="phoneNumber"
-                            value={currentMember.phoneNumber}
-                            onChange={onEditChange}
-                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                          />
-                        ) : (
-                          <p className="font-medium">{currentMember.phoneNumber}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Mail size={16} className="text-gray-400" />
-                      <div className="flex-1">
-                        <label className="block text-sm text-gray-600 mb-1">Email Address</label>
-                        {isEditing ? (
-                          <input
-                            type="email"
-                            name="email"
-                            value={currentMember.email}
-                            onChange={onEditChange}
-                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                          />
-                        ) : (
-                          <p className="font-medium">{currentMember.email || 'N/A'}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 border-t pt-3">
-                    <div className="flex items-center gap-3">
-                      <MapPin size={16} className="text-gray-400" />
-                      <div className="flex-1">
-                        <label className="block text-sm text-gray-600 mb-1">Full Address</label>
-                        {isEditing ? (
-                          <div className="grid grid-cols-2 gap-2">
-                            <input
-                              type="text"
-                              name="city"
-                              value={currentMember.city}
-                              onChange={onEditChange}
-                              placeholder="City"
-                              className="border border-gray-300 rounded px-2 py-1 text-sm"
-                            />
-                            <input
-                              type="text"
-                              name="subcity"
-                              value={currentMember.subcity}
-                              onChange={onEditChange}
-                              placeholder="Subcity"
-                              className="border border-gray-300 rounded px-2 py-1 text-sm"
-                            />
-                          </div>
-                        ) : (
-                          <p className="font-medium">{currentMember.city}, {currentMember.subcity}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 ml-8">
-                      <div>
-                        <label className="block text-sm text-gray-600 mb-1">Woreda</label>
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            name="woreda"
-                            value={currentMember.woreda}
-                            onChange={onEditChange}
-                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                          />
-                        ) : (
-                          <p className="font-medium">{currentMember.woreda}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-sm text-gray-600 mb-1">House No</label>
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            name="houseNo"
-                            value={currentMember.houseNo}
-                            onChange={onEditChange}
-                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                          />
-                        ) : (
-                          <p className="font-medium">{currentMember.houseNo}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Emergency Contact */}
-                  <div className="space-y-3 border-t pt-3">
-                    <h5 className="font-medium text-gray-700 text-sm">Emergency Contact</h5>
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs text-gray-600 mb-1">Name</label>
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              name="emergencyContactName"
-                              value={currentMember.emergencyContactName}
-                              onChange={onEditChange}
-                              className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                            />
-                          ) : (
-                            <p className="font-semibold text-gray-800">{currentMember.emergencyContactName}</p>
-                          )}
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-600 mb-1">Phone</label>
+                  <h4 className="font-semibold text-gray-800 border-b pb-2">Contact & Address Information</h4>
+                  <div className="space-y-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <Phone size={16} className="text-gray-400" />
+                        <div className="flex-1">
+                          <label className="block text-sm text-gray-600 mb-1">Phone Number</label>
                           {isEditing ? (
                             <input
                               type="tel"
-                              name="emergencyContactPhone"
-                              value={currentMember.emergencyContactPhone}
+                              name="phone_number"
+                              value={currentMember.phone_number}
                               onChange={onEditChange}
                               className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                             />
                           ) : (
-                            <p className="font-semibold text-blue-600">{currentMember.emergencyContactPhone}</p>
+                            <p className="font-medium">{currentMember.phone_number}</p>
                           )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Mail size={16} className="text-gray-400" />
+                        <div className="flex-1">
+                          <label className="block text-sm text-gray-600 mb-1">Email Address</label>
+                          {isEditing ? (
+                            <input
+                              type="email"
+                              name="email"
+                              value={currentMember.email || ''}
+                              onChange={onEditChange}
+                              className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                            />
+                          ) : (
+                            <p className="font-medium">{currentMember.email || 'N/A'}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 border-t pt-3">
+                      <div className="flex items-center gap-3">
+                        <MapPin size={16} className="text-gray-400" />
+                        <div className="flex-1">
+                          <label className="block text-sm text-gray-600 mb-1">Full Address</label>
+                          {isEditing ? (
+                            <div className="grid grid-cols-2 gap-2">
+                              <input
+                                type="text"
+                                name="city"
+                                value={currentMember.city}
+                                onChange={onEditChange}
+                                placeholder="City"
+                                className="border border-gray-300 rounded px-2 py-1 text-sm"
+                              />
+                              <input
+                                type="text"
+                                name="subcity"
+                                value={currentMember.subcity}
+                                onChange={onEditChange}
+                                placeholder="Subcity"
+                                className="border border-gray-300 rounded px-2 py-1 text-sm"
+                              />
+                            </div>
+                          ) : (
+                            <p className="font-medium">{currentMember.city}, {currentMember.subcity}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 ml-8">
+                        <div>
+                          <label className="block text-sm text-gray-600 mb-1">Woreda</label>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              name="woreda"
+                              value={currentMember.woreda}
+                              onChange={onEditChange}
+                              className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                            />
+                          ) : (
+                            <p className="font-medium">{currentMember.woreda}</p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-sm text-gray-600 mb-1">House No</label>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              name="house_no"
+                              value={currentMember.house_no}
+                              onChange={onEditChange}
+                              className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                            />
+                          ) : (
+                            <p className="font-medium">{currentMember.house_no}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Emergency Contact */}
+                    <div className="space-y-3 border-t pt-3">
+                      <h5 className="font-medium text-gray-700 text-sm">Emergency Contact</h5>
+                      <div className="bg-blue-50 p-4 rounded-lg">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">Name</label>
+                            {isEditing ? (
+                              <input
+                                type="text"
+                                name="emergency_contact_name"
+                                value={currentMember.emergency_contact_name}
+                                onChange={onEditChange}
+                                className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                              />
+                            ) : (
+                              <p className="font-semibold text-gray-800">{currentMember.emergency_contact_name}</p>
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">Phone</label>
+                            {isEditing ? (
+                              <input
+                                type="tel"
+                                name="emergency_contact_phone"
+                                value={currentMember.emergency_contact_phone}
+                                onChange={onEditChange}
+                                className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                              />
+                            ) : (
+                              <p className="font-semibold text-blue-600">{currentMember.emergency_contact_phone}</p>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -418,13 +575,13 @@ const MemberDetailView = ({
               </div>
             </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );
 };
 
-// Add Member View Component (Drill-down version)
+// Add Member View Component
 const AddMemberView = ({ 
   onClose, 
   onSave,
@@ -432,7 +589,8 @@ const AddMemberView = ({
   setIsSidebarOpen,
   SidebarContent,
   newMember,
-  onInputChange
+  onInputChange,
+  isLoading
 }) => {
   return (
     <div className="flex h-screen bg-gray-100">
@@ -466,10 +624,11 @@ const AddMemberView = ({
             </button>
             <button
               onClick={() => onSave(newMember)}
-              className="bg-amber-300 font-bold text-black px-3 py-2 rounded-lg hover:bg-amber-400 transition flex items-center gap-2 text-sm"
+              disabled={isLoading}
+              className="bg-amber-300 font-bold text-black px-3 py-2 rounded-lg hover:bg-amber-400 transition flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Save size={16} />
-              Register
+              {isLoading ? <Loader size={16} className="animate-spin" /> : <Save size={16} />}
+              {isLoading ? 'Registering...' : 'Register'}
             </button>
           </div>
         </header>
@@ -478,12 +637,12 @@ const AddMemberView = ({
           <div className="flex items-center gap-4 p-6 border-b border-gray-200">
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
               <span className="text-blue-600 font-semibold text-xl">
-                {newMember.firstName ? newMember.firstName[0] : 'N'}{newMember.lastName ? newMember.lastName[0] : 'M'}
+                {newMember.first_name ? newMember.first_name[0] : 'N'}{newMember.middle_name ? newMember.middle_name[0] : ''}{newMember.last_name ? newMember.last_name[0] : 'M'}
               </span>
             </div>
             <div className="flex-1">
               <h3 className="text-xl font-bold text-gray-800 mb-1">
-                {newMember.firstName || 'New'} {newMember.lastName || 'Member'}
+                {newMember.first_name || 'New'} {newMember.middle_name ? newMember.middle_name + ' ' : ''}{newMember.last_name || 'Member'}
               </h3>
               <div className="flex items-center gap-4 text-sm">
                 <span className="text-gray-600">New Member Registration</span>
@@ -500,17 +659,29 @@ const AddMemberView = ({
               <div className="space-y-4">
                 <h4 className="font-semibold text-gray-800 border-b pb-2">Personal Information</h4>
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm text-gray-600 mb-1">
                         First Name *
                       </label>
                       <input
                         type="text"
-                        name="firstName"
-                        value={newMember.firstName}
+                        name="first_name"
+                        value={newMember.first_name}
                         onChange={onInputChange}
                         required
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">
+                        Middle Name
+                      </label>
+                      <input
+                        type="text"
+                        name="middle_name"
+                        value={newMember.middle_name}
+                        onChange={onInputChange}
                         className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
@@ -520,8 +691,8 @@ const AddMemberView = ({
                       </label>
                       <input
                         type="text"
-                        name="lastName"
-                        value={newMember.lastName}
+                        name="last_name"
+                        value={newMember.last_name}
                         onChange={onInputChange}
                         required
                         className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -552,8 +723,8 @@ const AddMemberView = ({
                       </label>
                       <input
                         type="date"
-                        name="dateOfBirth"
-                        value={newMember.dateOfBirth}
+                        name="date_of_birth"
+                        value={newMember.date_of_birth}
                         onChange={onInputChange}
                         required
                         className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -568,8 +739,8 @@ const AddMemberView = ({
                       </label>
                       <input
                         type="text"
-                        name="nationalId"
-                        value={newMember.nationalId}
+                        name="national_id"
+                        value={newMember.national_id}
                         onChange={onInputChange}
                         required
                         className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -593,29 +764,16 @@ const AddMemberView = ({
                     </div>
                   </div>
 
-                  {/* Member ID and Date Joined */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm text-gray-600 mb-1">
-                        Member ID
-                      </label>
-                      <input
-                        type="text"
-                        name="memberId"
-                        value={newMember.memberId}
-                        onChange={onInputChange}
-                        placeholder="e.g., M001"
-                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
+                  {/* Date Joined */}
+                  <div className="grid grid-cols-1 gap-4">
                     <div>
                       <label className="block text-sm text-gray-600 mb-1">
                         Date Joined
                       </label>
                       <input
                         type="date"
-                        name="membershipDate"
-                        value={newMember.membershipDate}
+                        name="membership_date"
+                        value={newMember.membership_date}
                         onChange={onInputChange}
                         className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
@@ -636,10 +794,11 @@ const AddMemberView = ({
                         <label className="block text-sm text-gray-600 mb-1">Phone Number *</label>
                         <input
                           type="tel"
-                          name="phoneNumber"
-                          value={newMember.phoneNumber}
+                          name="phone_number"
+                          value={newMember.phone_number}
                           onChange={onInputChange}
                           required
+                          placeholder="0979572520 or +251979572520"
                           className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
@@ -700,8 +859,8 @@ const AddMemberView = ({
                         <label className="block text-sm text-gray-600 mb-1">House No</label>
                         <input
                           type="text"
-                          name="houseNo"
-                          value={newMember.houseNo}
+                          name="house_no"
+                          value={newMember.house_no}
                           onChange={onInputChange}
                           className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
@@ -718,8 +877,8 @@ const AddMemberView = ({
                           <label className="block text-xs text-gray-600 mb-1">Name</label>
                           <input
                             type="text"
-                            name="emergencyContactName"
-                            value={newMember.emergencyContactName}
+                            name="emergency_contact_name"
+                            value={newMember.emergency_contact_name}
                             onChange={onInputChange}
                             className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
@@ -728,9 +887,10 @@ const AddMemberView = ({
                           <label className="block text-xs text-gray-600 mb-1">Phone</label>
                           <input
                             type="tel"
-                            name="emergencyContactPhone"
-                            value={newMember.emergencyContactPhone}
+                            name="emergency_contact_phone"
+                            value={newMember.emergency_contact_phone}
                             onChange={onInputChange}
+                            placeholder="0979572520 or +251979572520"
                             className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                         </div>
@@ -746,8 +906,8 @@ const AddMemberView = ({
                         <div className="flex-1">
                           <label className="block text-xs text-gray-600 mb-1">Status</label>
                           <select
-                            name="membershipStatus"
-                            value={newMember.membershipStatus}
+                            name="membership_status"
+                            value={newMember.membership_status}
                             onChange={onInputChange}
                             className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                           >
@@ -755,20 +915,6 @@ const AddMemberView = ({
                             <option value="Inactive">Inactive</option>
                             <option value="Suspended">Suspended</option>
                           </select>
-                        </div>
-                        <div className="flex-1">
-                          <label className="block text-xs text-gray-600 mb-1">Profile Photo</label>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => onInputChange({
-                              target: {
-                                name: 'profilePhoto',
-                                value: e.target.files[0]
-                              }
-                            })}
-                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
                         </div>
                       </div>
                     </div>
@@ -788,37 +934,49 @@ const MemberPrintView = ({ member, onClose }) => {
   const printDate = new Date().toLocaleDateString();
   const printTime = new Date().toLocaleTimeString();
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
-    <div className="fixed inset-0 bg-white z-50 p-8 overflow-auto">
-      <div className="max-w-4xl mx-auto">
-        {/* Print Header */}
-        <div className="flex justify-between items-center mb-6 border-b pb-4">
+    <div className="fixed inset-0 bg-white z-50 p-8 overflow-auto print:p-0">
+      <div className="max-w-4xl mx-auto print:max-w-none">
+        {/* Print Header - Hidden when printing */}
+        <div className="flex justify-between items-center mb-6 border-b pb-4 print:hidden">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">MEMBER PROFILE</h1>
             <p className="text-gray-600">Printed on: {printDate} at {printTime}</p>
           </div>
-          <button 
-            onClick={onClose}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
-          >
-            Close Print View
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={handlePrint}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+            >
+              Print Now
+            </button>
+            <button 
+              onClick={onClose}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+            >
+              Close
+            </button>
+          </div>
         </div>
 
         {/* Print Content */}
-        <div className="space-y-6">
+        <div className="space-y-6 print:space-y-4">
           {/* Member Header */}
-          <div className="flex justify-between items-start border-b pb-4">
+          <div className="flex justify-between items-start border-b pb-4 print:border-b-2 print:border-black">
             <div>
-              <h2 className="text-xl font-bold">{member.firstName} {member.lastName}</h2>
-              <div className="flex gap-4 mt-2 text-sm">
-                <span>ID: {member.id}</span>
-                <span>Member ID: {member.memberId}</span>
+              <h2 className="text-xl font-bold print:text-2xl">{member.first_name} {member.middle_name ? member.middle_name + ' ' : ''}{member.last_name}</h2>
+              <div className="flex gap-4 mt-2 text-sm print:text-base">
+                <span>ID: {member.member_id}</span>
+                <span>National ID: {member.national_id}</span>
                 <span className={`px-2 py-1 rounded-full ${
-                  member.membershipStatus === 'Active' ? 'bg-green-100' : 
-                  member.membershipStatus === 'Inactive' ? 'bg-gray-100' : 'bg-red-100'
-                }`}>
-                  {member.membershipStatus}
+                  member.membership_status === 'Active' ? 'bg-green-100' : 
+                  member.membership_status === 'Inactive' ? 'bg-gray-100' : 'bg-red-100'
+                } print:bg-transparent print:border print:border-black print:px-1`}>
+                  {member.membership_status}
                 </span>
               </div>
             </div>
@@ -826,9 +984,9 @@ const MemberPrintView = ({ member, onClose }) => {
 
           {/* Print Table */}
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-gray-300">
+            <table className="w-full border-collapse border border-gray-300 print:border-black">
               <thead>
-                <tr className="bg-gray-100">
+                <tr className="bg-gray-100 print:bg-gray-200">
                   <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Field</th>
                   <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Details</th>
                 </tr>
@@ -842,7 +1000,7 @@ const MemberPrintView = ({ member, onClose }) => {
                 </tr>
                 <tr>
                   <td className="border border-gray-300 px-4 py-2 font-medium">Full Name</td>
-                  <td className="border border-gray-300 px-4 py-2">{member.firstName} {member.lastName}</td>
+                  <td className="border border-gray-300 px-4 py-2">{member.first_name} {member.middle_name ? member.middle_name + ' ' : ''}{member.last_name}</td>
                 </tr>
                 <tr>
                   <td className="border border-gray-300 px-4 py-2 font-medium">Gender</td>
@@ -850,11 +1008,11 @@ const MemberPrintView = ({ member, onClose }) => {
                 </tr>
                 <tr>
                   <td className="border border-gray-300 px-4 py-2 font-medium">Date of Birth</td>
-                  <td className="border border-gray-300 px-4 py-2">{member.dateOfBirth}</td>
+                  <td className="border border-gray-300 px-4 py-2">{member.date_of_birth}</td>
                 </tr>
                 <tr>
                   <td className="border border-gray-300 px-4 py-2 font-medium">National ID</td>
-                  <td className="border border-gray-300 px-4 py-2">{member.nationalId}</td>
+                  <td className="border border-gray-300 px-4 py-2">{member.national_id}</td>
                 </tr>
                 <tr>
                   <td className="border border-gray-300 px-4 py-2 font-medium">Occupation</td>
@@ -862,11 +1020,11 @@ const MemberPrintView = ({ member, onClose }) => {
                 </tr>
                 <tr>
                   <td className="border border-gray-300 px-4 py-2 font-medium">Member ID</td>
-                  <td className="border border-gray-300 px-4 py-2">{member.memberId}</td>
+                  <td className="border border-gray-300 px-4 py-2">{member.member_id}</td>
                 </tr>
                 <tr>
                   <td className="border border-gray-300 px-4 py-2 font-medium">Date Joined</td>
-                  <td className="border border-gray-300 px-4 py-2">{member.membershipDate}</td>
+                  <td className="border border-gray-300 px-4 py-2">{member.membership_date}</td>
                 </tr>
 
                 {/* Contact & Address Information */}
@@ -877,7 +1035,7 @@ const MemberPrintView = ({ member, onClose }) => {
                 </tr>
                 <tr>
                   <td className="border border-gray-300 px-4 py-2 font-medium">Phone Number</td>
-                  <td className="border border-gray-300 px-4 py-2">{member.phoneNumber}</td>
+                  <td className="border border-gray-300 px-4 py-2">{member.phone_number}</td>
                 </tr>
                 <tr>
                   <td className="border border-gray-300 px-4 py-2 font-medium">Email Address</td>
@@ -897,7 +1055,7 @@ const MemberPrintView = ({ member, onClose }) => {
                 </tr>
                 <tr>
                   <td className="border border-gray-300 px-4 py-2 font-medium">House No</td>
-                  <td className="border border-gray-300 px-4 py-2">{member.houseNo}</td>
+                  <td className="border border-gray-300 px-4 py-2">{member.house_no}</td>
                 </tr>
 
                 {/* Emergency Contact */}
@@ -908,11 +1066,11 @@ const MemberPrintView = ({ member, onClose }) => {
                 </tr>
                 <tr>
                   <td className="border border-gray-300 px-4 py-2 font-medium">Contact Name</td>
-                  <td className="border border-gray-300 px-4 py-2 font-semibold">{member.emergencyContactName}</td>
+                  <td className="border border-gray-300 px-4 py-2 font-semibold">{member.emergency_contact_name}</td>
                 </tr>
                 <tr>
                   <td className="border border-gray-300 px-4 py-2 font-medium">Contact Phone</td>
-                  <td className="border border-gray-300 px-4 py-2 font-semibold">{member.emergencyContactPhone}</td>
+                  <td className="border border-gray-300 px-4 py-2 font-semibold">{member.emergency_contact_phone}</td>
                 </tr>
 
                 {/* Membership Information */}
@@ -925,10 +1083,10 @@ const MemberPrintView = ({ member, onClose }) => {
                   <td className="border border-gray-300 px-4 py-2 font-medium">Membership Status</td>
                   <td className="border border-gray-300 px-4 py-2">
                     <span className={`px-2 py-1 rounded-full ${
-                      member.membershipStatus === 'Active' ? 'bg-green-100' : 
-                      member.membershipStatus === 'Inactive' ? 'bg-gray-100' : 'bg-red-100'
+                      member.membership_status === 'Active' ? 'bg-green-100' : 
+                      member.membership_status === 'Inactive' ? 'bg-gray-100' : 'bg-red-100'
                     }`}>
-                      {member.membershipStatus}
+                      {member.membership_status}
                     </span>
                   </td>
                 </tr>
@@ -940,12 +1098,11 @@ const MemberPrintView = ({ member, onClose }) => {
           <div className="border-t pt-4 mt-8">
             <div className="flex justify-between text-sm text-gray-600">
               <div>
-                <p>Generated by SACCO Management System</p>
+                <p>ADMAS SACCO Management System</p>
                 <p>This is an official document</p>
               </div>
               <div className="text-right">
                 <p>Page 1 of 1</p>
-                <p>Confidential</p>
               </div>
             </div>
           </div>
@@ -958,7 +1115,7 @@ const MemberPrintView = ({ member, onClose }) => {
 // Main Members Component
 const Members = () => {
   const [selectedMember, setSelectedMember] = useState(null);
-  const [currentView, setCurrentView] = useState("management"); // "management", "detail", "add"
+  const [currentView, setCurrentView] = useState("management");
   const [isPrintView, setIsPrintView] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -972,85 +1129,80 @@ const Members = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedMember, setEditedMember] = useState(null);
   
+  // Loading and error states
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [notification, setNotification] = useState({ message: '', type: '' });
+  
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
 
-  // Sample member data
-  const [members, setMembers] = useState([
-    {
-      id: "MEM001",
-      firstName: "John",
-      lastName: "Doe",
-      gender: "Male",
-      dateOfBirth: "1985-05-15",
-      nationalId: "1234567890",
-      phoneNumber: "+251911223344",
-      email: "john.doe@email.com",
-      city: "Addis Ababa",
-      subcity: "Bole",
-      woreda: "08",
-      houseNo: "H123",
-      membershipDate: "2023-01-15",
-      occupation: "Member",
-      memberId: "M001",
-      emergencyContactName: "Jane Doe",
-      emergencyContactPhone: "+251922334455",
-      profilePhoto: null,
-      membershipStatus: "Active"
-    },
-    {
-      id: "MEM002",
-      firstName: "Mary",
-      lastName: "Smith",
-      gender: "Female",
-      dateOfBirth: "1990-08-22",
-      nationalId: "0987654321",
-      phoneNumber: "+251944556677",
-      email: "mary.smith@email.com",
-      city: "Addis Ababa",
-      subcity: "Kirkos",
-      woreda: "03",
-      houseNo: "H456",
-      membershipDate: "2023-02-20",
-      occupation: "Member",
-      memberId: "M002",
-      emergencyContactName: "Robert Smith",
-      emergencyContactPhone: "+251955667788",
-      profilePhoto: null,
-      membershipStatus: "Active"
-    }
-  ]);
+  // Members data from backend
+  const [members, setMembers] = useState([]);
 
+  // New member state
   const [newMember, setNewMember] = useState({
-    firstName: "",
-    lastName: "",
+    first_name: "",
+    middle_name: "",
+    last_name: "",
     gender: "",
-    dateOfBirth: "",
-    nationalId: "",
-    phoneNumber: "",
+    date_of_birth: "",
+    national_id: "",
+    phone_number: "",
     email: "",
-    city: "",
+    city: "Addis Ababa",
     subcity: "",
     woreda: "",
-    houseNo: "",
-    membershipDate: new Date().toISOString().split('T')[0],
+    house_no: "",
+    membership_date: new Date().toISOString().split('T')[0],
     occupation: "Member",
-    memberId: "",
-    emergencyContactName: "",
-    emergencyContactPhone: "",
-    profilePhoto: null,
-    membershipStatus: "Active"
+    emergency_contact_name: "",
+    emergency_contact_phone: "",
+    profile_photo: null,
+    membership_status: "Active"
   });
 
-  // Filter members
+  // Load members on component mount
+  useEffect(() => {
+    loadMembers();
+  }, [currentPage, rowsPerPage, filters, searchTerm]);
+
+  const loadMembers = async () => {
+    setIsLoading(true);
+    try {
+      const filterParams = {
+        membership_status: filters.status,
+        gender: filters.gender,
+        occupation: filters.occupation,
+        search: searchTerm || undefined
+      };
+      
+      const data = await memberAPI.getMembers(currentPage, rowsPerPage, filterParams);
+      setMembers(data.results || data);
+      setTotalCount(data.count || data.length);
+    } catch (error) {
+      showNotification('Failed to load members: ' + error.message, 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const showNotification = (message, type = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification({ message: '', type: '' }), 5000);
+  };
+
+  // Filter members locally for immediate feedback
   const filteredMembers = members.filter(member => {
     const matchesSearch = 
-      `${member.firstName} ${member.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.phoneNumber.includes(searchTerm) ||
-      member.nationalId.includes(searchTerm);
+      `${member.first_name} ${member.middle_name || ''} ${member.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.phone_number.includes(searchTerm) ||
+      member.national_id.includes(searchTerm) ||
+      member.member_id.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = !filters.status || member.membershipStatus === filters.status;
+    const matchesStatus = !filters.status || member.membership_status === filters.status;
     const matchesGender = !filters.gender || member.gender === filters.gender;
     const matchesOccupation = !filters.occupation || member.occupation === filters.occupation;
 
@@ -1058,17 +1210,25 @@ const Members = () => {
   });
 
   // Pagination calculations
-  const totalPages = Math.ceil(filteredMembers.length / rowsPerPage);
+  const totalPages = Math.ceil(totalCount / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
   const currentMembers = filteredMembers.slice(startIndex, endIndex);
 
   // Drill-down navigation handlers
-  const handleViewMember = (member) => {
-    setSelectedMember(member);
-    setCurrentView("detail");
-    setIsEditing(false);
-    setEditedMember(null);
+  const handleViewMember = async (member) => {
+    setIsLoading(true);
+    try {
+      const memberDetail = await memberAPI.getMember(member.member_id);
+      setSelectedMember(memberDetail);
+      setCurrentView("detail");
+      setIsEditing(false);
+      setEditedMember(null);
+    } catch (error) {
+      showNotification('Failed to load member details: ' + error.message, 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleBackToManagement = () => {
@@ -1078,24 +1238,24 @@ const Members = () => {
     setEditedMember(null);
     // Reset new member form when going back
     setNewMember({
-      firstName: "",
-      lastName: "",
+      first_name: "",
+      middle_name: "",
+      last_name: "",
       gender: "",
-      dateOfBirth: "",
-      nationalId: "",
-      phoneNumber: "",
+      date_of_birth: "",
+      national_id: "",
+      phone_number: "",
       email: "",
-      city: "",
+      city: "Addis Ababa",
       subcity: "",
       woreda: "",
-      houseNo: "",
-      membershipDate: new Date().toISOString().split('T')[0],
+      house_no: "",
+      membership_date: new Date().toISOString().split('T')[0],
       occupation: "Member",
-      memberId: "",
-      emergencyContactName: "",
-      emergencyContactPhone: "",
-      profilePhoto: null,
-      membershipStatus: "Active"
+      emergency_contact_name: "",
+      emergency_contact_phone: "",
+      profile_photo: null,
+      membership_status: "Active"
     });
   };
 
@@ -1118,53 +1278,24 @@ const Members = () => {
     }));
   };
 
-  const handleSaveMember = (updatedMember) => {
-    setMembers(prev => 
-      prev.map(member => 
-        member.id === updatedMember.id ? updatedMember : member
-      )
-    );
-    setSelectedMember(updatedMember);
-    setIsEditing(false);
-    setEditedMember(null);
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setEditedMember(null);
-  };
-
-  // Add Member functionality
-  const handleSaveNewMember = (memberData) => {
-    const id = `MEM${String(members.length + 1).padStart(3, '0')}`;
-    const memberToAdd = { 
-      ...memberData, 
-      id: id,
-      memberId: memberData.memberId || `M${String(members.length + 1).padStart(3, '0')}`
-    };
-    setMembers([...members, memberToAdd]);
-    setNewMember({
-      firstName: "",
-      lastName: "",
-      gender: "",
-      dateOfBirth: "",
-      nationalId: "",
-      phoneNumber: "",
-      email: "",
-      city: "",
-      subcity: "",
-      woreda: "",
-      houseNo: "",
-      membershipDate: new Date().toISOString().split('T')[0],
-      occupation: "Member",
-      memberId: "",
-      emergencyContactName: "",
-      emergencyContactPhone: "",
-      profilePhoto: null,
-      membershipStatus: "Active"
-    });
-    setCurrentView("management");
-    setCurrentPage(1);
+  const handleSaveMember = async (updatedMember) => {
+    setIsSaving(true);
+    try {
+      const savedMember = await memberAPI.updateMember(updatedMember.member_id, updatedMember);
+      setMembers(prev => 
+        prev.map(member => 
+          member.member_id === savedMember.member_id ? savedMember : member
+        )
+      );
+      setSelectedMember(savedMember);
+      setIsEditing(false);
+      setEditedMember(null);
+      showNotification('Member updated successfully!');
+    } catch (error) {
+      showNotification('Failed to update member: ' + error.message, 'error');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -1175,6 +1306,61 @@ const Members = () => {
     }));
   };
 
+  const handleSaveNewMember = async (memberData) => {
+    setIsSaving(true);
+    try {
+      const savedMember = await memberAPI.createMember(memberData);
+      setMembers(prev => [savedMember, ...prev]);
+      setNewMember({
+        first_name: "",
+        middle_name: "",
+        last_name: "",
+        gender: "",
+        date_of_birth: "",
+        national_id: "",
+        phone_number: "",
+        email: "",
+        city: "Addis Ababa",
+        subcity: "",
+        woreda: "",
+        house_no: "",
+        membership_date: new Date().toISOString().split('T')[0],
+        occupation: "Member",
+        emergency_contact_name: "",
+        emergency_contact_phone: "",
+        profile_photo: null,
+        membership_status: "Active"
+      });
+      setCurrentView("management");
+      setCurrentPage(1);
+      showNotification('Member registered successfully!');
+    } catch (error) {
+      showNotification('Failed to register member: ' + error.message, 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Delete member
+  const handleDeleteMember = async (memberId) => {
+    if (window.confirm("Are you sure you want to delete this member?")) {
+      try {
+        await memberAPI.deleteMember(memberId);
+        setMembers(prev => prev.filter(member => member.member_id !== memberId));
+        if (currentMembers.length === 1 && currentPage > 1) {
+          setCurrentPage(currentPage - 1);
+        }
+        if (currentView === "detail" && selectedMember && selectedMember.member_id === memberId) {
+          setCurrentView("management");
+          setSelectedMember(null);
+        }
+        showNotification('Member deleted successfully!');
+      } catch (error) {
+        showNotification('Failed to delete member: ' + error.message, 'error');
+      }
+    }
+  };
+
   // Print functionality
   const handlePrint = () => {
     setIsPrintView(true);
@@ -1182,20 +1368,6 @@ const Members = () => {
 
   const handleClosePrint = () => {
     setIsPrintView(false);
-  };
-
-  // Delete member
-  const handleDeleteMember = (memberId) => {
-    if (window.confirm("Are you sure you want to delete this member?")) {
-      setMembers(members.filter(member => member.id !== memberId));
-      if (currentMembers.length === 1 && currentPage > 1) {
-        setCurrentPage(currentPage - 1);
-      }
-      if (currentView === "detail" && selectedMember && selectedMember.id === memberId) {
-        setCurrentView("management");
-        setSelectedMember(null);
-      }
-    }
   };
 
   // Filter handlers
@@ -1217,30 +1389,28 @@ const Members = () => {
   };
 
   // Export functionality
-  const handleExport = () => {
-    const csvContent = [
-      ["ID", "First Name", "Last Name", "Phone", "Gender", "Status", "Email", "National ID"],
-      ...filteredMembers.map(member => [
-        member.id,
-        member.firstName,
-        member.lastName,
-        member.phoneNumber,
-        member.gender,
-        member.membershipStatus,
-        member.email,
-        member.nationalId
-      ])
-    ].map(row => row.join(",")).join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "members_export.csv";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  const handleExport = async () => {
+    try {
+      const filterParams = {
+        membership_status: filters.status,
+        gender: filters.gender,
+        occupation: filters.occupation,
+        search: searchTerm || undefined
+      };
+      
+      const blob = await memberAPI.exportMembers(filterParams);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `members_export_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showNotification('Members exported successfully!');
+    } catch (error) {
+      showNotification('Failed to export members: ' + error.message, 'error');
+    }
   };
 
   // Pagination handlers
@@ -1299,6 +1469,7 @@ const Members = () => {
         SidebarContent={SidebarContent}
         newMember={newMember}
         onInputChange={handleInputChange}
+        isLoading={isSaving}
       />
     );
   }
@@ -1319,6 +1490,8 @@ const Members = () => {
         editedMember={editedMember}
         onEditChange={handleEditChange}
         onPrint={handlePrint}
+        isLoading={isLoading}
+        isSaving={isSaving}
       />
     );
   }
@@ -1328,6 +1501,13 @@ const Members = () => {
     <div className="flex h-screen bg-gray-100">
       <SidebarContent />
       <main className={`flex-1 p-8 overflow-y-auto transition-all duration-300 ${!isSidebarOpen ? 'ml-0' : ''}`}>
+        {/* Notification */}
+        <Notification 
+          message={notification.message} 
+          type={notification.type} 
+          onClose={() => setNotification({ message: '', type: '' })} 
+        />
+        
         {/* Header */}
         <header className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-4">
@@ -1357,7 +1537,7 @@ const Members = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
-                placeholder="Search by name, phone, or national ID..."
+                placeholder="Search by name, phone, national ID, or member ID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1430,6 +1610,14 @@ const Members = () => {
               <Download size={20} />
               Export
             </button>
+            <button 
+              onClick={loadMembers}
+              disabled={isLoading}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            >
+              <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
+              Refresh
+            </button>
           </div>
           
           {/* Active Filters Display */}
@@ -1456,109 +1644,123 @@ const Members = () => {
         </div>
 
         {/* Members Table */}
-
-<section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
-  <div className="overflow-x-auto">
-    <table className="w-full">
-      <thead className="bg-amber-300 border-b border-gray-200">
-        <tr>
-          <th className="px-6 py-3 text-left text-xs font-bold text-black uppercase tracking-wider">
-            Full Name
-          </th>
-          <th className="px-6 py-3 text-left text-xs font-bold text-black uppercase tracking-wider">
-            Phone
-          </th>
-          <th className="px-6 py-3 text-left text-xs font-bold text-black uppercase tracking-wider">
-            Gender
-          </th>
-          <th className="px-6 py-3 text-left text-xs font-bold text-black uppercase tracking-wider">
-            Emergency Contact
-          </th>
-          <th className="px-6 py-3 text-left text-xs font-bold text-black uppercase tracking-wider">
-            Emergency Phone
-          </th>
-          <th className="px-6 py-3 text-left text-xs font-bold text-black uppercase tracking-wider">
-            Status
-          </th>
-          <th className="px-6 py-3 text-left text-xs font-bold text-black uppercase tracking-wider">
-            Actions
-          </th>
-        </tr>
-      </thead>
-      <tbody className="bg-white divide-y divide-gray-200">
-        {currentMembers.map((member) => (
-          <tr key={member.id} className="hover:bg-gray-50">
-            <td className="px-6 py-4 whitespace-nowrap">
-              <div className="flex items-center">
-                <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-blue-600 font-medium">
-                    {member.firstName[0]}{member.lastName[0]}
-                  </span>
-                </div>
-                <div className="ml-4">
-                  <div className="text-sm font-medium text-gray-900">
-                    {member.firstName} {member.lastName}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {member.id}
-                  </div>
-                </div>
-              </div>
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              {member.phoneNumber}
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              {member.gender}
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              {member.emergencyContactName}
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              {member.emergencyContactPhone}
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap">
-              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                member.membershipStatus === 'Active' 
-                  ? 'bg-green-100 text-green-800'
-                  : member.membershipStatus === 'Inactive'
-                  ? 'bg-gray-100 text-gray-800'
-                  : 'bg-red-100 text-red-800'
-              }`}>
-                {member.membershipStatus}
-              </span>
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleViewMember(member)}
-                  className="text-blue-600 hover:text-blue-800 p-1 rounded transition-colors"
-                  title="View Details"
-                >
-                  <Eye size={18} />
-                </button>
-                <button
-                  onClick={() => handleEditMember(member)}
-                  className="text-green-600 hover:text-green-800 p-1 rounded transition-colors"
-                  title="Edit Member"
-                >
-                  <Edit size={18} />
-                </button>
-                <button
-                  onClick={() => handleDeleteMember(member.id)}
-                  className="text-red-600 hover:text-red-800 p-1 rounded transition-colors"
-                  title="Delete Member"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-</section>
+        <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-amber-300 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-black uppercase tracking-wider">
+                    Full Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-black uppercase tracking-wider">
+                    Phone
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-black uppercase tracking-wider">
+                    Gender
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-black uppercase tracking-wider">
+                    Emergency Contact
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-black uppercase tracking-wider">
+                    Emergency Phone
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-black uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-black uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan="7" className="px-6 py-8 text-center">
+                      <LoadingSpinner size={32} />
+                      <p className="mt-2 text-gray-600">Loading members...</p>
+                    </td>
+                  </tr>
+                ) : currentMembers.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
+                      No members found. {searchTerm && 'Try adjusting your search or filters.'}
+                    </td>
+                  </tr>
+                ) : (
+                  currentMembers.map((member) => (
+                    <tr key={member.member_id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span className="text-blue-600 font-medium">
+                              {member.first_name[0]}{member.middle_name ? member.middle_name[0] : ''}{member.last_name[0]}
+                            </span>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {member.first_name} {member.middle_name ? member.middle_name + ' ' : ''}{member.last_name}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {member.member_id}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {member.phone_number}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {member.gender}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {member.emergency_contact_name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {member.emergency_contact_phone}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          member.membership_status === 'Active' 
+                            ? 'bg-green-100 text-green-800'
+                            : member.membership_status === 'Inactive'
+                            ? 'bg-gray-100 text-gray-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {member.membership_status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleViewMember(member)}
+                            className="text-blue-600 hover:text-blue-800 p-1 rounded transition-colors"
+                            title="View Details"
+                          >
+                            <Eye size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleEditMember(member)}
+                            className="text-green-600 hover:text-green-800 p-1 rounded transition-colors"
+                            title="Edit Member"
+                          >
+                            <Edit size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteMember(member.member_id)}
+                            className="text-red-600 hover:text-red-800 p-1 rounded transition-colors"
+                            title="Delete Member"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
 
         {/* Pagination Controls */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
@@ -1572,10 +1774,11 @@ const Members = () => {
             >
               <option value={5}>5</option>
               <option value={10}>10</option>
+              <option value={25}>25</option>
               <option value={50}>50</option>
             </select>
             <span className="text-sm text-gray-600">
-              Showing {startIndex + 1}-{Math.min(endIndex, filteredMembers.length)} of {filteredMembers.length} members
+              Showing {startIndex + 1}-{Math.min(endIndex, totalCount)} of {totalCount} members
             </span>
           </div>
 
