@@ -2,6 +2,8 @@ from rest_framework import serializers
 from .models import Member
 from django.core.exceptions import ValidationError
 import re
+from core.models import SystemSetting
+from django.utils import timezone
 
 class MemberSerializer(serializers.ModelSerializer):
     full_name = serializers.ReadOnlyField()
@@ -75,6 +77,22 @@ class MemberSerializer(serializers.ModelSerializer):
             if qs.exists():
                 raise ValidationError({'national_id': 'A member with this national ID already exists.'})
         
+        # Validate date_of_birth
+        dob = data.get('date_of_birth')
+        if dob and dob > timezone.now().date():
+            raise serializers.ValidationError({'date_of_birth': 'Date of birth cannot be in the future.'})
+
+        # Validate membership_date
+        membership_date = data.get('membership_date')
+        settings = SystemSetting.get_settings()
+        if membership_date:
+            if settings.startup_date and membership_date < settings.startup_date:
+                raise serializers.ValidationError({
+                    'membership_date': f"Membership date cannot be before the organization's startup date ({settings.startup_date})."
+                })
+            if membership_date > timezone.now().date():
+                raise serializers.ValidationError({'membership_date': 'Membership date cannot be in the future.'})
+
         return data
 
 class MemberCreateSerializer(MemberSerializer):
@@ -100,3 +118,5 @@ class MemberExportSerializer(serializers.ModelSerializer):
             'email',
             'national_id',
         ]
+
+        
