@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'fees',
     'dividend',
     'repayments',
+    'core'
 ]
 
 MIDDLEWARE = [

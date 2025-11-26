@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import saccoLogo from "../assets/sacco-logo.svg";
-import { 
-  Eye, 
-  Edit, 
-  Trash2, 
-  Search, 
+import {
+  Eye,
+  Edit,
+  Trash2,
+  Search,
   Filter,
   Download,
   UserPlus,
@@ -25,42 +25,43 @@ import {
   Loader,
   AlertCircle,
   CheckCircle,
-  RefreshCw
+  RefreshCw,
 } from "lucide-react";
 
 // Updated API Configuration without authentication
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = "http://localhost:8080/api";
 
 // Helper function to handle API calls
 const handleApiCall = async (url, options = {}) => {
   try {
     const defaultOptions = {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...options.headers,
       },
     };
 
     const response = await fetch(url, { ...defaultOptions, ...options });
-    
+
     if (!response.ok) {
       let errorMessage = `HTTP error! status: ${response.status}`;
       try {
         const errorData = await response.json();
-        errorMessage = errorData.detail || errorData.message || JSON.stringify(errorData);
+        errorMessage =
+          errorData.detail || errorData.message || JSON.stringify(errorData);
       } catch (e) {
         errorMessage = response.statusText || errorMessage;
       }
       throw new Error(errorMessage);
     }
-    
+
     if (response.status === 204) {
       return null;
     }
-    
+
     return await response.json();
   } catch (error) {
-    console.error('API call failed:', error);
+    console.error("API call failed:", error);
     throw error;
   }
 };
@@ -75,11 +76,11 @@ const memberAPI = {
 
     // Add non-empty filters
     Object.entries(filters).forEach(([key, value]) => {
-      if (value && value !== 'undefined') {
+      if (value && value !== "undefined") {
         params.append(key, value);
       }
     });
-    
+
     return handleApiCall(`${API_BASE_URL}/members/members/?${params}`);
   },
 
@@ -96,7 +97,7 @@ const memberAPI = {
   // Create member
   createMember: async (memberData) => {
     return handleApiCall(`${API_BASE_URL}/members/members/`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(memberData),
     });
   },
@@ -104,7 +105,7 @@ const memberAPI = {
   // Update member
   updateMember: async (memberId, memberData) => {
     return handleApiCall(`${API_BASE_URL}/members/members/${memberId}/`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(memberData),
     });
   },
@@ -112,26 +113,28 @@ const memberAPI = {
   // Delete member
   deleteMember: async (memberId) => {
     return handleApiCall(`${API_BASE_URL}/members/members/${memberId}/`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   },
 
   // Export members
   exportMembers: async (filters = {}) => {
     const params = new URLSearchParams();
-    
+
     Object.entries(filters).forEach(([key, value]) => {
-      if (value && value !== 'undefined') {
+      if (value && value !== "undefined") {
         params.append(key, value);
       }
     });
 
-    const response = await fetch(`${API_BASE_URL}/members/members/export/?${params}`);
-    
+    const response = await fetch(
+      `${API_BASE_URL}/members/members/export/?${params}`
+    );
+
     if (!response.ok) {
-      throw new Error('Failed to export members');
+      throw new Error("Failed to export members");
     }
-    
+
     return response.blob();
   },
 };
@@ -140,14 +143,19 @@ const memberAPI = {
 const Notification = ({ message, type, onClose }) => {
   if (!message) return null;
 
-  const bgColor = type === 'error' ? 'bg-red-100 border-red-400 text-red-700' : 
-                 type === 'success' ? 'bg-green-100 border-green-400 text-green-700' : 
-                 'bg-blue-100 border-blue-400 text-blue-700';
+  const bgColor =
+    type === "error"
+      ? "bg-red-100 border-red-400 text-red-700"
+      : type === "success"
+      ? "bg-green-100 border-green-400 text-green-700"
+      : "bg-blue-100 border-blue-400 text-blue-700";
 
-  const Icon = type === 'error' ? AlertCircle : CheckCircle;
+  const Icon = type === "error" ? AlertCircle : CheckCircle;
 
   return (
-    <div className={`fixed top-4 right-4 z-50 border-l-4 p-4 rounded-lg shadow-lg ${bgColor} max-w-md`}>
+    <div
+      className={`fixed top-4 right-4 z-50 border-l-4 p-4 rounded-lg shadow-lg ${bgColor} max-w-md`}
+    >
       <div className="flex items-center gap-3">
         <Icon size={20} />
         <p className="flex-1 text-sm font-medium">{message}</p>
@@ -167,10 +175,10 @@ const LoadingSpinner = ({ size = 24 }) => (
 );
 
 // Member Detail View Component
-const MemberDetailView = ({ 
-  member, 
-  onClose, 
-  onEdit, 
+const MemberDetailView = ({
+  member,
+  onClose,
+  onEdit,
   onDelete,
   onSave,
   isSidebarOpen,
@@ -181,7 +189,7 @@ const MemberDetailView = ({
   onEditChange,
   onPrint,
   isLoading,
-  isSaving
+  isSaving,
 }) => {
   if (!member) return null;
 
@@ -190,16 +198,20 @@ const MemberDetailView = ({
   return (
     <div className="flex h-screen bg-gray-100">
       <SidebarContent />
-      <main className={`flex-1 p-6 overflow-y-auto transition-all duration-300 ${!isSidebarOpen ? 'ml-0' : ''}`}>
+      <main
+        className={`flex-1 p-6 overflow-y-auto transition-all duration-300 ${
+          !isSidebarOpen ? "ml-0" : ""
+        }`}
+      >
         <header className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="p-2 rounded-lg hover:bg-gray-200 transition"
             >
               {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
-            <button 
+            <button
               onClick={onClose}
               className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition text-sm"
             >
@@ -225,8 +237,12 @@ const MemberDetailView = ({
                   disabled={isSaving}
                   className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isSaving ? <Loader size={16} className="animate-spin" /> : <Save size={16} />}
-                  {isSaving ? 'Saving...' : 'Save Changes'}
+                  {isSaving ? (
+                    <Loader size={16} className="animate-spin" />
+                  ) : (
+                    <Save size={16} />
+                  )}
+                  {isSaving ? "Saving..." : "Save Changes"}
                 </button>
                 <button
                   onClick={() => onEdit(null)}
@@ -260,29 +276,43 @@ const MemberDetailView = ({
         {isLoading ? (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12">
             <LoadingSpinner size={48} />
-            <p className="text-center mt-4 text-gray-600">Loading member details...</p>
+            <p className="text-center mt-4 text-gray-600">
+              Loading member details...
+            </p>
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="flex items-center gap-4 p-6 border-b border-gray-200">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
                 <span className="text-blue-600 font-semibold text-xl">
-                  {currentMember.first_name[0]}{currentMember.middle_name ? currentMember.middle_name[0] : ''}{currentMember.last_name[0]}
+                  {currentMember.first_name[0]}
+                  {currentMember.middle_name
+                    ? currentMember.middle_name[0]
+                    : ""}
+                  {currentMember.last_name[0]}
                 </span>
               </div>
               <div className="flex-1">
                 <h3 className="text-xl font-bold text-gray-800 mb-1">
-                  {currentMember.first_name} {currentMember.middle_name ? currentMember.middle_name + ' ' : ''}{currentMember.last_name}
+                  {currentMember.first_name}{" "}
+                  {currentMember.middle_name
+                    ? currentMember.middle_name + " "
+                    : ""}
+                  {currentMember.last_name}
                 </h3>
                 <div className="flex items-center gap-4 text-sm">
-                  <span className="text-gray-600">ID: {currentMember.member_id}</span>
-                  <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
-                    currentMember.membership_status === 'Active' 
-                      ? 'bg-green-100 text-green-800'
-                      : currentMember.membership_status === 'Inactive'
-                      ? 'bg-gray-100 text-gray-800'
-                      : 'bg-red-100 text-red-800'
-                  }`}>
+                  <span className="text-gray-600">
+                    ID: {currentMember.member_id}
+                  </span>
+                  <span
+                    className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
+                      currentMember.membership_status === "Active"
+                        ? "bg-green-100 text-green-800"
+                        : currentMember.membership_status === "Inactive"
+                        ? "bg-gray-100 text-gray-800"
+                        : "bg-red-100 text-red-800"
+                    }`}
+                  >
                     {currentMember.membership_status}
                   </span>
                 </div>
@@ -293,11 +323,15 @@ const MemberDetailView = ({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Personal Information */}
                 <div className="space-y-4">
-                  <h4 className="font-semibold text-gray-800 border-b pb-2">Personal Information</h4>
+                  <h4 className="font-semibold text-gray-800 border-b pb-2">
+                    Personal Information
+                  </h4>
                   <div className="space-y-3">
                     <div className="grid grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-sm text-gray-600 mb-1">First Name</label>
+                        <label className="block text-sm text-gray-600 mb-1">
+                          First Name
+                        </label>
                         {isEditing ? (
                           <input
                             type="text"
@@ -307,25 +341,33 @@ const MemberDetailView = ({
                             className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                           />
                         ) : (
-                          <p className="font-medium">{currentMember.first_name}</p>
+                          <p className="font-medium">
+                            {currentMember.first_name}
+                          </p>
                         )}
                       </div>
                       <div>
-                        <label className="block text-sm text-gray-600 mb-1">Middle Name</label>
+                        <label className="block text-sm text-gray-600 mb-1">
+                          Middle Name
+                        </label>
                         {isEditing ? (
                           <input
                             type="text"
                             name="middle_name"
-                            value={currentMember.middle_name || ''}
+                            value={currentMember.middle_name || ""}
                             onChange={onEditChange}
                             className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                           />
                         ) : (
-                          <p className="font-medium">{currentMember.middle_name || 'N/A'}</p>
+                          <p className="font-medium">
+                            {currentMember.middle_name || "N/A"}
+                          </p>
                         )}
                       </div>
                       <div>
-                        <label className="block text-sm text-gray-600 mb-1">Last Name</label>
+                        <label className="block text-sm text-gray-600 mb-1">
+                          Last Name
+                        </label>
                         {isEditing ? (
                           <input
                             type="text"
@@ -335,14 +377,18 @@ const MemberDetailView = ({
                             className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                           />
                         ) : (
-                          <p className="font-medium">{currentMember.last_name}</p>
+                          <p className="font-medium">
+                            {currentMember.last_name}
+                          </p>
                         )}
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm text-gray-600 mb-1">Gender</label>
+                        <label className="block text-sm text-gray-600 mb-1">
+                          Gender
+                        </label>
                         {isEditing ? (
                           <select
                             name="gender"
@@ -358,7 +404,9 @@ const MemberDetailView = ({
                         )}
                       </div>
                       <div>
-                        <label className="block text-sm text-gray-600 mb-1">Date of Birth</label>
+                        <label className="block text-sm text-gray-600 mb-1">
+                          Date of Birth
+                        </label>
                         {isEditing ? (
                           <input
                             type="date"
@@ -368,14 +416,18 @@ const MemberDetailView = ({
                             className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                           />
                         ) : (
-                          <p className="font-medium">{currentMember.date_of_birth}</p>
+                          <p className="font-medium">
+                            {currentMember.date_of_birth}
+                          </p>
                         )}
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm text-gray-600 mb-1">National ID</label>
+                        <label className="block text-sm text-gray-600 mb-1">
+                          National ID
+                        </label>
                         {isEditing ? (
                           <input
                             type="text"
@@ -385,11 +437,15 @@ const MemberDetailView = ({
                             className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                           />
                         ) : (
-                          <p className="font-medium">{currentMember.national_id}</p>
+                          <p className="font-medium">
+                            {currentMember.national_id}
+                          </p>
                         )}
                       </div>
                       <div>
-                        <label className="block text-sm text-gray-600 mb-1">Occupation</label>
+                        <label className="block text-sm text-gray-600 mb-1">
+                          Occupation
+                        </label>
                         {isEditing ? (
                           <select
                             name="occupation"
@@ -403,7 +459,9 @@ const MemberDetailView = ({
                             <option value="Accountant">Accountant</option>
                           </select>
                         ) : (
-                          <p className="font-medium">{currentMember.occupation}</p>
+                          <p className="font-medium">
+                            {currentMember.occupation}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -411,11 +469,15 @@ const MemberDetailView = ({
                     {/* Member ID and Date Joined */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm text-gray-600 mb-1">Member ID</label>
+                        <label className="block text-sm text-gray-600 mb-1">
+                          Member ID
+                        </label>
                         <p className="font-medium">{currentMember.member_id}</p>
                       </div>
                       <div>
-                        <label className="block text-sm text-gray-600 mb-1">Date Joined</label>
+                        <label className="block text-sm text-gray-600 mb-1">
+                          Date Joined
+                        </label>
                         {isEditing ? (
                           <input
                             type="date"
@@ -425,7 +487,9 @@ const MemberDetailView = ({
                             className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                           />
                         ) : (
-                          <p className="font-medium">{currentMember.membership_date}</p>
+                          <p className="font-medium">
+                            {currentMember.membership_date}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -434,13 +498,17 @@ const MemberDetailView = ({
 
                 {/* Contact & Address Information */}
                 <div className="space-y-4">
-                  <h4 className="font-semibold text-gray-800 border-b pb-2">Contact & Address Information</h4>
+                  <h4 className="font-semibold text-gray-800 border-b pb-2">
+                    Contact & Address Information
+                  </h4>
                   <div className="space-y-4">
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
                         <Phone size={16} className="text-gray-400" />
                         <div className="flex-1">
-                          <label className="block text-sm text-gray-600 mb-1">Phone Number</label>
+                          <label className="block text-sm text-gray-600 mb-1">
+                            Phone Number
+                          </label>
                           {isEditing ? (
                             <input
                               type="tel"
@@ -450,24 +518,30 @@ const MemberDetailView = ({
                               className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                             />
                           ) : (
-                            <p className="font-medium">{currentMember.phone_number}</p>
+                            <p className="font-medium">
+                              {currentMember.phone_number}
+                            </p>
                           )}
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <Mail size={16} className="text-gray-400" />
                         <div className="flex-1">
-                          <label className="block text-sm text-gray-600 mb-1">Email Address</label>
+                          <label className="block text-sm text-gray-600 mb-1">
+                            Email Address
+                          </label>
                           {isEditing ? (
                             <input
                               type="email"
                               name="email"
-                              value={currentMember.email || ''}
+                              value={currentMember.email || ""}
                               onChange={onEditChange}
                               className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                             />
                           ) : (
-                            <p className="font-medium">{currentMember.email || 'N/A'}</p>
+                            <p className="font-medium">
+                              {currentMember.email || "N/A"}
+                            </p>
                           )}
                         </div>
                       </div>
@@ -477,7 +551,9 @@ const MemberDetailView = ({
                       <div className="flex items-center gap-3">
                         <MapPin size={16} className="text-gray-400" />
                         <div className="flex-1">
-                          <label className="block text-sm text-gray-600 mb-1">Full Address</label>
+                          <label className="block text-sm text-gray-600 mb-1">
+                            Full Address
+                          </label>
                           {isEditing ? (
                             <div className="grid grid-cols-2 gap-2">
                               <input
@@ -498,13 +574,17 @@ const MemberDetailView = ({
                               />
                             </div>
                           ) : (
-                            <p className="font-medium">{currentMember.city}, {currentMember.subcity}</p>
+                            <p className="font-medium">
+                              {currentMember.city}, {currentMember.subcity}
+                            </p>
                           )}
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4 ml-8">
                         <div>
-                          <label className="block text-sm text-gray-600 mb-1">Woreda</label>
+                          <label className="block text-sm text-gray-600 mb-1">
+                            Woreda
+                          </label>
                           {isEditing ? (
                             <input
                               type="text"
@@ -514,11 +594,15 @@ const MemberDetailView = ({
                               className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
                             />
                           ) : (
-                            <p className="font-medium">{currentMember.woreda}</p>
+                            <p className="font-medium">
+                              {currentMember.woreda}
+                            </p>
                           )}
                         </div>
                         <div>
-                          <label className="block text-sm text-gray-600 mb-1">House No</label>
+                          <label className="block text-sm text-gray-600 mb-1">
+                            House No
+                          </label>
                           {isEditing ? (
                             <input
                               type="text"
@@ -528,7 +612,9 @@ const MemberDetailView = ({
                               className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
                             />
                           ) : (
-                            <p className="font-medium">{currentMember.house_no}</p>
+                            <p className="font-medium">
+                              {currentMember.house_no}
+                            </p>
                           )}
                         </div>
                       </div>
@@ -536,11 +622,15 @@ const MemberDetailView = ({
 
                     {/* Emergency Contact */}
                     <div className="space-y-3 border-t pt-3">
-                      <h5 className="font-medium text-gray-700 text-sm">Emergency Contact</h5>
+                      <h5 className="font-medium text-gray-700 text-sm">
+                        Emergency Contact
+                      </h5>
                       <div className="bg-blue-50 p-4 rounded-lg">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-xs text-gray-600 mb-1">Name</label>
+                            <label className="block text-xs text-gray-600 mb-1">
+                              Name
+                            </label>
                             {isEditing ? (
                               <input
                                 type="text"
@@ -550,11 +640,15 @@ const MemberDetailView = ({
                                 className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                               />
                             ) : (
-                              <p className="font-semibold text-gray-800">{currentMember.emergency_contact_name}</p>
+                              <p className="font-semibold text-gray-800">
+                                {currentMember.emergency_contact_name}
+                              </p>
                             )}
                           </div>
                           <div>
-                            <label className="block text-xs text-gray-600 mb-1">Phone</label>
+                            <label className="block text-xs text-gray-600 mb-1">
+                              Phone
+                            </label>
                             {isEditing ? (
                               <input
                                 type="tel"
@@ -564,7 +658,9 @@ const MemberDetailView = ({
                                 className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                               />
                             ) : (
-                              <p className="font-semibold text-blue-600">{currentMember.emergency_contact_phone}</p>
+                              <p className="font-semibold text-blue-600">
+                                {currentMember.emergency_contact_phone}
+                              </p>
                             )}
                           </div>
                         </div>
@@ -582,29 +678,33 @@ const MemberDetailView = ({
 };
 
 // Add Member View Component
-const AddMemberView = ({ 
-  onClose, 
+const AddMemberView = ({
+  onClose,
   onSave,
   isSidebarOpen,
   setIsSidebarOpen,
   SidebarContent,
   newMember,
   onInputChange,
-  isLoading
+  isLoading,
 }) => {
   return (
     <div className="flex h-screen bg-gray-100">
       <SidebarContent />
-      <main className={`flex-1 p-6 overflow-y-auto transition-all duration-300 ${!isSidebarOpen ? 'ml-0' : ''}`}>
+      <main
+        className={`flex-1 p-6 overflow-y-auto transition-all duration-300 ${
+          !isSidebarOpen ? "ml-0" : ""
+        }`}
+      >
         <header className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="p-2 rounded-lg hover:bg-gray-200 transition"
             >
               {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
-            <button 
+            <button
               onClick={onClose}
               className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition text-sm"
             >
@@ -627,8 +727,12 @@ const AddMemberView = ({
               disabled={isLoading}
               className="bg-amber-300 font-bold text-black px-3 py-2 rounded-lg hover:bg-amber-400 transition flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? <Loader size={16} className="animate-spin" /> : <Save size={16} />}
-              {isLoading ? 'Registering...' : 'Register'}
+              {isLoading ? (
+                <Loader size={16} className="animate-spin" />
+              ) : (
+                <Save size={16} />
+              )}
+              {isLoading ? "Registering..." : "Register"}
             </button>
           </div>
         </header>
@@ -637,12 +741,16 @@ const AddMemberView = ({
           <div className="flex items-center gap-4 p-6 border-b border-gray-200">
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
               <span className="text-blue-600 font-semibold text-xl">
-                {newMember.first_name ? newMember.first_name[0] : 'N'}{newMember.middle_name ? newMember.middle_name[0] : ''}{newMember.last_name ? newMember.last_name[0] : 'M'}
+                {newMember.first_name ? newMember.first_name[0] : "N"}
+                {newMember.middle_name ? newMember.middle_name[0] : ""}
+                {newMember.last_name ? newMember.last_name[0] : "M"}
               </span>
             </div>
             <div className="flex-1">
               <h3 className="text-xl font-bold text-gray-800 mb-1">
-                {newMember.first_name || 'New'} {newMember.middle_name ? newMember.middle_name + ' ' : ''}{newMember.last_name || 'Member'}
+                {newMember.first_name || "New"}{" "}
+                {newMember.middle_name ? newMember.middle_name + " " : ""}
+                {newMember.last_name || "Member"}
               </h3>
               <div className="flex items-center gap-4 text-sm">
                 <span className="text-gray-600">New Member Registration</span>
@@ -653,11 +761,19 @@ const AddMemberView = ({
             </div>
           </div>
 
-          <form onSubmit={(e) => { e.preventDefault(); onSave(newMember); }} className="p-6">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              onSave(newMember);
+            }}
+            className="p-6"
+          >
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Personal Information */}
               <div className="space-y-4">
-                <h4 className="font-semibold text-gray-800 border-b pb-2">Personal Information</h4>
+                <h4 className="font-semibold text-gray-800 border-b pb-2">
+                  Personal Information
+                </h4>
                 <div className="space-y-3">
                   <div className="grid grid-cols-3 gap-4">
                     <div>
@@ -784,14 +900,18 @@ const AddMemberView = ({
 
               {/* Contact & Address Information */}
               <div className="space-y-4">
-                <h4 className="font-semibold text-gray-800 border-b pb-2">Contact & Address Information</h4>
+                <h4 className="font-semibold text-gray-800 border-b pb-2">
+                  Contact & Address Information
+                </h4>
                 <div className="space-y-4">
                   {/* Contact Information */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
                       <Phone size={16} className="text-gray-400" />
                       <div className="flex-1">
-                        <label className="block text-sm text-gray-600 mb-1">Phone Number *</label>
+                        <label className="block text-sm text-gray-600 mb-1">
+                          Phone Number *
+                        </label>
                         <input
                           type="tel"
                           name="phone_number"
@@ -806,7 +926,9 @@ const AddMemberView = ({
                     <div className="flex items-center gap-3">
                       <Mail size={16} className="text-gray-400" />
                       <div className="flex-1">
-                        <label className="block text-sm text-gray-600 mb-1">Email Address</label>
+                        <label className="block text-sm text-gray-600 mb-1">
+                          Email Address
+                        </label>
                         <input
                           type="email"
                           name="email"
@@ -823,7 +945,9 @@ const AddMemberView = ({
                     <div className="flex items-center gap-3">
                       <MapPin size={16} className="text-gray-400" />
                       <div className="flex-1">
-                        <label className="block text-sm text-gray-600 mb-1">Full Address</label>
+                        <label className="block text-sm text-gray-600 mb-1">
+                          Full Address
+                        </label>
                         <div className="grid grid-cols-2 gap-2">
                           <input
                             type="text"
@@ -846,7 +970,9 @@ const AddMemberView = ({
                     </div>
                     <div className="grid grid-cols-2 gap-4 ml-8">
                       <div>
-                        <label className="block text-sm text-gray-600 mb-1">Woreda</label>
+                        <label className="block text-sm text-gray-600 mb-1">
+                          Woreda
+                        </label>
                         <input
                           type="text"
                           name="woreda"
@@ -856,7 +982,9 @@ const AddMemberView = ({
                         />
                       </div>
                       <div>
-                        <label className="block text-sm text-gray-600 mb-1">House No</label>
+                        <label className="block text-sm text-gray-600 mb-1">
+                          House No
+                        </label>
                         <input
                           type="text"
                           name="house_no"
@@ -870,11 +998,15 @@ const AddMemberView = ({
 
                   {/* Emergency Contact */}
                   <div className="space-y-3 border-t pt-3">
-                    <h5 className="font-medium text-gray-700 text-sm">Emergency Contact</h5>
+                    <h5 className="font-medium text-gray-700 text-sm">
+                      Emergency Contact
+                    </h5>
                     <div className="bg-blue-50 p-4 rounded-lg">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs text-gray-600 mb-1">Name</label>
+                          <label className="block text-xs text-gray-600 mb-1">
+                            Name
+                          </label>
                           <input
                             type="text"
                             name="emergency_contact_name"
@@ -884,7 +1016,9 @@ const AddMemberView = ({
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-600 mb-1">Phone</label>
+                          <label className="block text-xs text-gray-600 mb-1">
+                            Phone
+                          </label>
                           <input
                             type="tel"
                             name="emergency_contact_phone"
@@ -900,11 +1034,15 @@ const AddMemberView = ({
 
                   {/* Membership Status */}
                   <div className="space-y-3 border-t pt-3">
-                    <h5 className="font-medium text-gray-700 text-sm">Membership Status</h5>
+                    <h5 className="font-medium text-gray-700 text-sm">
+                      Membership Status
+                    </h5>
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <div className="flex items-center gap-4">
                         <div className="flex-1">
-                          <label className="block text-xs text-gray-600 mb-1">Status</label>
+                          <label className="block text-xs text-gray-600 mb-1">
+                            Status
+                          </label>
                           <select
                             name="membership_status"
                             value={newMember.membership_status}
@@ -945,16 +1083,18 @@ const MemberPrintView = ({ member, onClose }) => {
         <div className="flex justify-between items-center mb-6 border-b pb-4 print:hidden">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">MEMBER PROFILE</h1>
-            <p className="text-gray-600">Printed on: {printDate} at {printTime}</p>
+            <p className="text-gray-600">
+              Printed on: {printDate} at {printTime}
+            </p>
           </div>
           <div className="flex gap-2">
-            <button 
+            <button
               onClick={handlePrint}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
             >
               Print Now
             </button>
-            <button 
+            <button
               onClick={onClose}
               className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
             >
@@ -968,14 +1108,23 @@ const MemberPrintView = ({ member, onClose }) => {
           {/* Member Header */}
           <div className="flex justify-between items-start border-b pb-4 print:border-b-2 print:border-black">
             <div>
-              <h2 className="text-xl font-bold print:text-2xl">{member.first_name} {member.middle_name ? member.middle_name + ' ' : ''}{member.last_name}</h2>
+              <h2 className="text-xl font-bold print:text-2xl">
+                {member.first_name}{" "}
+                {member.middle_name ? member.middle_name + " " : ""}
+                {member.last_name}
+              </h2>
               <div className="flex gap-4 mt-2 text-sm print:text-base">
                 <span>ID: {member.member_id}</span>
                 <span>National ID: {member.national_id}</span>
-                <span className={`px-2 py-1 rounded-full ${
-                  member.membership_status === 'Active' ? 'bg-green-100' : 
-                  member.membership_status === 'Inactive' ? 'bg-gray-100' : 'bg-red-100'
-                } print:bg-transparent print:border print:border-black print:px-1`}>
+                <span
+                  className={`px-2 py-1 rounded-full ${
+                    member.membership_status === "Active"
+                      ? "bg-green-100"
+                      : member.membership_status === "Inactive"
+                      ? "bg-gray-100"
+                      : "bg-red-100"
+                  } print:bg-transparent print:border print:border-black print:px-1`}
+                >
                   {member.membership_status}
                 </span>
               </div>
@@ -987,105 +1136,190 @@ const MemberPrintView = ({ member, onClose }) => {
             <table className="w-full border-collapse border border-gray-300 print:border-black">
               <thead>
                 <tr className="bg-gray-100 print:bg-gray-200">
-                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Field</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Details</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">
+                    Field
+                  </th>
+                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">
+                    Details
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {/* Personal Information */}
                 <tr className="bg-gray-50">
-                  <td colSpan="2" className="border border-gray-300 px-4 py-2 font-bold bg-amber-200">
+                  <td
+                    colSpan="2"
+                    className="border border-gray-300 px-4 py-2 font-bold bg-amber-200"
+                  >
                     PERSONAL INFORMATION
                   </td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-300 px-4 py-2 font-medium">Full Name</td>
-                  <td className="border border-gray-300 px-4 py-2">{member.first_name} {member.middle_name ? member.middle_name + ' ' : ''}{member.last_name}</td>
+                  <td className="border border-gray-300 px-4 py-2 font-medium">
+                    Full Name
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {member.first_name}{" "}
+                    {member.middle_name ? member.middle_name + " " : ""}
+                    {member.last_name}
+                  </td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-300 px-4 py-2 font-medium">Gender</td>
-                  <td className="border border-gray-300 px-4 py-2">{member.gender}</td>
+                  <td className="border border-gray-300 px-4 py-2 font-medium">
+                    Gender
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {member.gender}
+                  </td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-300 px-4 py-2 font-medium">Date of Birth</td>
-                  <td className="border border-gray-300 px-4 py-2">{member.date_of_birth}</td>
+                  <td className="border border-gray-300 px-4 py-2 font-medium">
+                    Date of Birth
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {member.date_of_birth}
+                  </td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-300 px-4 py-2 font-medium">National ID</td>
-                  <td className="border border-gray-300 px-4 py-2">{member.national_id}</td>
+                  <td className="border border-gray-300 px-4 py-2 font-medium">
+                    National ID
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {member.national_id}
+                  </td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-300 px-4 py-2 font-medium">Occupation</td>
-                  <td className="border border-gray-300 px-4 py-2">{member.occupation}</td>
+                  <td className="border border-gray-300 px-4 py-2 font-medium">
+                    Occupation
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {member.occupation}
+                  </td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-300 px-4 py-2 font-medium">Member ID</td>
-                  <td className="border border-gray-300 px-4 py-2">{member.member_id}</td>
+                  <td className="border border-gray-300 px-4 py-2 font-medium">
+                    Member ID
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {member.member_id}
+                  </td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-300 px-4 py-2 font-medium">Date Joined</td>
-                  <td className="border border-gray-300 px-4 py-2">{member.membership_date}</td>
+                  <td className="border border-gray-300 px-4 py-2 font-medium">
+                    Date Joined
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {member.membership_date}
+                  </td>
                 </tr>
 
                 {/* Contact & Address Information */}
                 <tr className="bg-gray-50">
-                  <td colSpan="2" className="border border-gray-300 px-4 py-2 font-bold bg-amber-200">
+                  <td
+                    colSpan="2"
+                    className="border border-gray-300 px-4 py-2 font-bold bg-amber-200"
+                  >
                     CONTACT & ADDRESS INFORMATION
                   </td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-300 px-4 py-2 font-medium">Phone Number</td>
-                  <td className="border border-gray-300 px-4 py-2">{member.phone_number}</td>
+                  <td className="border border-gray-300 px-4 py-2 font-medium">
+                    Phone Number
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {member.phone_number}
+                  </td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-300 px-4 py-2 font-medium">Email Address</td>
-                  <td className="border border-gray-300 px-4 py-2">{member.email || 'N/A'}</td>
+                  <td className="border border-gray-300 px-4 py-2 font-medium">
+                    Email Address
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {member.email || "N/A"}
+                  </td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-300 px-4 py-2 font-medium">City</td>
-                  <td className="border border-gray-300 px-4 py-2">{member.city}</td>
+                  <td className="border border-gray-300 px-4 py-2 font-medium">
+                    City
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {member.city}
+                  </td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-300 px-4 py-2 font-medium">Subcity</td>
-                  <td className="border border-gray-300 px-4 py-2">{member.subcity}</td>
+                  <td className="border border-gray-300 px-4 py-2 font-medium">
+                    Subcity
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {member.subcity}
+                  </td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-300 px-4 py-2 font-medium">Woreda</td>
-                  <td className="border border-gray-300 px-4 py-2">{member.woreda}</td>
+                  <td className="border border-gray-300 px-4 py-2 font-medium">
+                    Woreda
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {member.woreda}
+                  </td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-300 px-4 py-2 font-medium">House No</td>
-                  <td className="border border-gray-300 px-4 py-2">{member.house_no}</td>
+                  <td className="border border-gray-300 px-4 py-2 font-medium">
+                    House No
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {member.house_no}
+                  </td>
                 </tr>
 
                 {/* Emergency Contact */}
                 <tr className="bg-gray-50">
-                  <td colSpan="2" className="border border-gray-300 px-4 py-2 font-bold bg-amber-200">
+                  <td
+                    colSpan="2"
+                    className="border border-gray-300 px-4 py-2 font-bold bg-amber-200"
+                  >
                     EMERGENCY CONTACT
                   </td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-300 px-4 py-2 font-medium">Contact Name</td>
-                  <td className="border border-gray-300 px-4 py-2 font-semibold">{member.emergency_contact_name}</td>
+                  <td className="border border-gray-300 px-4 py-2 font-medium">
+                    Contact Name
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2 font-semibold">
+                    {member.emergency_contact_name}
+                  </td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-300 px-4 py-2 font-medium">Contact Phone</td>
-                  <td className="border border-gray-300 px-4 py-2 font-semibold">{member.emergency_contact_phone}</td>
+                  <td className="border border-gray-300 px-4 py-2 font-medium">
+                    Contact Phone
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2 font-semibold">
+                    {member.emergency_contact_phone}
+                  </td>
                 </tr>
 
                 {/* Membership Information */}
                 <tr className="bg-gray-50">
-                  <td colSpan="2" className="border border-gray-300 px-4 py-2 font-bold bg-amber-200">
+                  <td
+                    colSpan="2"
+                    className="border border-gray-300 px-4 py-2 font-bold bg-amber-200"
+                  >
                     MEMBERSHIP INFORMATION
                   </td>
                 </tr>
                 <tr>
-                  <td className="border border-gray-300 px-4 py-2 font-medium">Membership Status</td>
+                  <td className="border border-gray-300 px-4 py-2 font-medium">
+                    Membership Status
+                  </td>
                   <td className="border border-gray-300 px-4 py-2">
-                    <span className={`px-2 py-1 rounded-full ${
-                      member.membership_status === 'Active' ? 'bg-green-100' : 
-                      member.membership_status === 'Inactive' ? 'bg-gray-100' : 'bg-red-100'
-                    }`}>
+                    <span
+                      className={`px-2 py-1 rounded-full ${
+                        member.membership_status === "Active"
+                          ? "bg-green-100"
+                          : member.membership_status === "Inactive"
+                          ? "bg-gray-100"
+                          : "bg-red-100"
+                      }`}
+                    >
                       {member.membership_status}
                     </span>
                   </td>
@@ -1122,18 +1356,18 @@ const Members = () => {
   const [filters, setFilters] = useState({
     status: "",
     gender: "",
-    occupation: ""
+    occupation: "",
   });
-  
+
   // Edit state
   const [isEditing, setIsEditing] = useState(false);
   const [editedMember, setEditedMember] = useState(null);
-  
+
   // Loading and error states
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [notification, setNotification] = useState({ message: '', type: '' });
-  
+  const [notification, setNotification] = useState({ message: "", type: "" });
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -1156,12 +1390,12 @@ const Members = () => {
     subcity: "",
     woreda: "",
     house_no: "",
-    membership_date: new Date().toISOString().split('T')[0],
+    membership_date: new Date().toISOString().split("T")[0],
     occupation: "Member",
     emergency_contact_name: "",
     emergency_contact_phone: "",
     profile_photo: null,
-    membership_status: "Active"
+    membership_status: "Active",
   });
 
   // Load members on component mount
@@ -1176,35 +1410,43 @@ const Members = () => {
         membership_status: filters.status,
         gender: filters.gender,
         occupation: filters.occupation,
-        search: searchTerm || undefined
+        search: searchTerm || undefined,
       };
-      
-      const data = await memberAPI.getMembers(currentPage, rowsPerPage, filterParams);
+
+      const data = await memberAPI.getMembers(
+        currentPage,
+        rowsPerPage,
+        filterParams
+      );
       setMembers(data.results || data);
       setTotalCount(data.count || data.length);
     } catch (error) {
-      showNotification('Failed to load members: ' + error.message, 'error');
+      showNotification("Failed to load members: " + error.message, "error");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const showNotification = (message, type = 'success') => {
+  const showNotification = (message, type = "success") => {
     setNotification({ message, type });
-    setTimeout(() => setNotification({ message: '', type: '' }), 5000);
+    setTimeout(() => setNotification({ message: "", type: "" }), 5000);
   };
 
   // Filter members locally for immediate feedback
-  const filteredMembers = members.filter(member => {
-    const matchesSearch = 
-      `${member.first_name} ${member.middle_name || ''} ${member.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredMembers = members.filter((member) => {
+    const matchesSearch =
+      `${member.first_name} ${member.middle_name || ""} ${member.last_name}`
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
       member.phone_number.includes(searchTerm) ||
       member.national_id.includes(searchTerm) ||
       member.member_id.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = !filters.status || member.membership_status === filters.status;
+
+    const matchesStatus =
+      !filters.status || member.membership_status === filters.status;
     const matchesGender = !filters.gender || member.gender === filters.gender;
-    const matchesOccupation = !filters.occupation || member.occupation === filters.occupation;
+    const matchesOccupation =
+      !filters.occupation || member.occupation === filters.occupation;
 
     return matchesSearch && matchesStatus && matchesGender && matchesOccupation;
   });
@@ -1225,7 +1467,10 @@ const Members = () => {
       setIsEditing(false);
       setEditedMember(null);
     } catch (error) {
-      showNotification('Failed to load member details: ' + error.message, 'error');
+      showNotification(
+        "Failed to load member details: " + error.message,
+        "error"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -1250,12 +1495,12 @@ const Members = () => {
       subcity: "",
       woreda: "",
       house_no: "",
-      membership_date: new Date().toISOString().split('T')[0],
+      membership_date: new Date().toISOString().split("T")[0],
       occupation: "Member",
       emergency_contact_name: "",
       emergency_contact_phone: "",
       profile_photo: null,
-      membership_status: "Active"
+      membership_status: "Active",
     });
   };
 
@@ -1266,33 +1511,36 @@ const Members = () => {
 
   // Edit member functionality
   const handleEditMember = (member) => {
-    setEditedMember({...member});
+    setEditedMember({ ...member });
     setIsEditing(true);
   };
 
   const handleEditChange = (e) => {
     const { name, value } = e.target;
-    setEditedMember(prev => ({
+    setEditedMember((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleSaveMember = async (updatedMember) => {
     setIsSaving(true);
     try {
-      const savedMember = await memberAPI.updateMember(updatedMember.member_id, updatedMember);
-      setMembers(prev => 
-        prev.map(member => 
+      const savedMember = await memberAPI.updateMember(
+        updatedMember.member_id,
+        updatedMember
+      );
+      setMembers((prev) =>
+        prev.map((member) =>
           member.member_id === savedMember.member_id ? savedMember : member
         )
       );
       setSelectedMember(savedMember);
       setIsEditing(false);
       setEditedMember(null);
-      showNotification('Member updated successfully!');
+      showNotification("Member updated successfully!");
     } catch (error) {
-      showNotification('Failed to update member: ' + error.message, 'error');
+      showNotification("Failed to update member: " + error.message, "error");
     } finally {
       setIsSaving(false);
     }
@@ -1300,9 +1548,9 @@ const Members = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setNewMember(prev => ({
+    setNewMember((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -1310,7 +1558,7 @@ const Members = () => {
     setIsSaving(true);
     try {
       const savedMember = await memberAPI.createMember(memberData);
-      setMembers(prev => [savedMember, ...prev]);
+      setMembers((prev) => [savedMember, ...prev]);
       setNewMember({
         first_name: "",
         middle_name: "",
@@ -1324,18 +1572,18 @@ const Members = () => {
         subcity: "",
         woreda: "",
         house_no: "",
-        membership_date: new Date().toISOString().split('T')[0],
+        membership_date: new Date().toISOString().split("T")[0],
         occupation: "Member",
         emergency_contact_name: "",
         emergency_contact_phone: "",
         profile_photo: null,
-        membership_status: "Active"
+        membership_status: "Active",
       });
       setCurrentView("management");
       setCurrentPage(1);
-      showNotification('Member registered successfully!');
+      showNotification("Member registered successfully!");
     } catch (error) {
-      showNotification('Failed to register member: ' + error.message, 'error');
+      showNotification("Failed to register member: " + error.message, "error");
     } finally {
       setIsSaving(false);
     }
@@ -1346,17 +1594,23 @@ const Members = () => {
     if (window.confirm("Are you sure you want to delete this member?")) {
       try {
         await memberAPI.deleteMember(memberId);
-        setMembers(prev => prev.filter(member => member.member_id !== memberId));
+        setMembers((prev) =>
+          prev.filter((member) => member.member_id !== memberId)
+        );
         if (currentMembers.length === 1 && currentPage > 1) {
           setCurrentPage(currentPage - 1);
         }
-        if (currentView === "detail" && selectedMember && selectedMember.member_id === memberId) {
+        if (
+          currentView === "detail" &&
+          selectedMember &&
+          selectedMember.member_id === memberId
+        ) {
           setCurrentView("management");
           setSelectedMember(null);
         }
-        showNotification('Member deleted successfully!');
+        showNotification("Member deleted successfully!");
       } catch (error) {
-        showNotification('Failed to delete member: ' + error.message, 'error');
+        showNotification("Failed to delete member: " + error.message, "error");
       }
     }
   };
@@ -1372,9 +1626,9 @@ const Members = () => {
 
   // Filter handlers
   const handleFilterChange = (filterType, value) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
-      [filterType]: value
+      [filterType]: value,
     }));
     setCurrentPage(1);
   };
@@ -1383,7 +1637,7 @@ const Members = () => {
     setFilters({
       status: "",
       gender: "",
-      occupation: ""
+      occupation: "",
     });
     setCurrentPage(1);
   };
@@ -1395,21 +1649,23 @@ const Members = () => {
         membership_status: filters.status,
         gender: filters.gender,
         occupation: filters.occupation,
-        search: searchTerm || undefined
+        search: searchTerm || undefined,
       };
-      
+
       const blob = await memberAPI.exportMembers(filterParams);
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `members_export_${new Date().toISOString().split('T')[0]}.csv`;
+      link.download = `members_export_${
+        new Date().toISOString().split("T")[0]
+      }.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      showNotification('Members exported successfully!');
+      showNotification("Members exported successfully!");
     } catch (error) {
-      showNotification('Failed to export members: ' + error.message, 'error');
+      showNotification("Failed to export members: " + error.message, "error");
     }
   };
 
@@ -1432,22 +1688,28 @@ const Members = () => {
   };
 
   const goToPreviousPage = () => {
-    setCurrentPage(prev => Math.max(prev - 1, 1));
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
   };
 
   const goToNextPage = () => {
-    setCurrentPage(prev => Math.min(prev + 1, totalPages));
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
   };
 
   const SidebarContent = () => (
-    <aside className={`${isSidebarOpen ? 'w-56' : 'w-0'} bg-black text-white flex flex-col shadow-lg transition-all duration-300 overflow-hidden`}>
+    <aside
+      className={`${
+        isSidebarOpen ? "w-56" : "w-0"
+      } bg-black text-white flex flex-col shadow-lg transition-all duration-300 overflow-hidden`}
+    >
       <div className="flex items-center justify-center gap-2 mt-6 mb-10 min-w-[224px]">
         <img
           src={saccoLogo}
           alt="SACCO Logo"
           className="w-10 h-10 rounded-full border border-gray-700"
         />
-        {isSidebarOpen && <h1 className="text-lg font-semibold tracking-wide">SACCO</h1>}
+        {isSidebarOpen && (
+          <h1 className="text-lg font-semibold tracking-wide">SACCO</h1>
+        )}
       </div>
       <Sidebar isCollapsed={!isSidebarOpen} />
     </aside>
@@ -1455,7 +1717,9 @@ const Members = () => {
 
   // Render Print View
   if (isPrintView && selectedMember) {
-    return <MemberPrintView member={selectedMember} onClose={handleClosePrint} />;
+    return (
+      <MemberPrintView member={selectedMember} onClose={handleClosePrint} />
+    );
   }
 
   // Render Add Member View
@@ -1500,18 +1764,22 @@ const Members = () => {
   return (
     <div className="flex h-screen bg-gray-100">
       <SidebarContent />
-      <main className={`flex-1 p-8 overflow-y-auto transition-all duration-300 ${!isSidebarOpen ? 'ml-0' : ''}`}>
+      <main
+        className={`flex-1 p-8 overflow-y-auto transition-all duration-300 ${
+          !isSidebarOpen ? "ml-0" : ""
+        }`}
+      >
         {/* Notification */}
-        <Notification 
-          message={notification.message} 
-          type={notification.type} 
-          onClose={() => setNotification({ message: '', type: '' })} 
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification({ message: "", type: "" })}
         />
-        
+
         {/* Header */}
         <header className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="p-2 rounded-lg hover:bg-gray-200 transition"
             >
@@ -1521,7 +1789,7 @@ const Members = () => {
               Member Management
             </h2>
           </div>
-          <button 
+          <button
             onClick={handleAddMemberView}
             className="bg-amber-300 font-bold text-black px-4 py-2 rounded-lg hover:bg-amber-400 transition flex items-center gap-2"
           >
@@ -1534,7 +1802,10 @@ const Members = () => {
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
           <div className="flex gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <Search
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                size={20}
+              />
               <input
                 type="text"
                 placeholder="Search by name, phone, national ID, or member ID..."
@@ -1548,15 +1819,19 @@ const Members = () => {
                 <Filter size={20} />
                 Filter
               </button>
-              
+
               {/* Filter Dropdown */}
               <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-10 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                 <div className="p-4 space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Status
+                    </label>
                     <select
                       value={filters.status}
-                      onChange={(e) => handleFilterChange('status', e.target.value)}
+                      onChange={(e) =>
+                        handleFilterChange("status", e.target.value)
+                      }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">All Status</option>
@@ -1565,12 +1840,16 @@ const Members = () => {
                       <option value="Suspended">Suspended</option>
                     </select>
                   </div>
-                  
+
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Gender
+                    </label>
                     <select
                       value={filters.gender}
-                      onChange={(e) => handleFilterChange('gender', e.target.value)}
+                      onChange={(e) =>
+                        handleFilterChange("gender", e.target.value)
+                      }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">All Gender</option>
@@ -1578,12 +1857,16 @@ const Members = () => {
                       <option value="Female">Female</option>
                     </select>
                   </div>
-                  
+
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Occupation</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Occupation
+                    </label>
                     <select
                       value={filters.occupation}
-                      onChange={(e) => handleFilterChange('occupation', e.target.value)}
+                      onChange={(e) =>
+                        handleFilterChange("occupation", e.target.value)
+                      }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">All Occupation</option>
@@ -1593,7 +1876,7 @@ const Members = () => {
                       <option value="Accountant">Accountant</option>
                     </select>
                   </div>
-                  
+
                   <button
                     onClick={clearFilters}
                     className="w-full px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
@@ -1603,23 +1886,26 @@ const Members = () => {
                 </div>
               </div>
             </div>
-            <button 
+            <button
               onClick={handleExport}
               className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
               <Download size={20} />
               Export
             </button>
-            <button 
+            <button
               onClick={loadMembers}
               disabled={isLoading}
               className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
             >
-              <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
+              <RefreshCw
+                size={20}
+                className={isLoading ? "animate-spin" : ""}
+              />
               Refresh
             </button>
           </div>
-          
+
           {/* Active Filters Display */}
           {(filters.status || filters.gender || filters.occupation) && (
             <div className="mt-3 flex items-center gap-2 text-sm">
@@ -1682,8 +1968,12 @@ const Members = () => {
                   </tr>
                 ) : currentMembers.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
-                      No members found. {searchTerm && 'Try adjusting your search or filters.'}
+                    <td
+                      colSpan="7"
+                      className="px-6 py-8 text-center text-gray-500"
+                    >
+                      No members found.{" "}
+                      {searchTerm && "Try adjusting your search or filters."}
                     </td>
                   </tr>
                 ) : (
@@ -1693,12 +1983,18 @@ const Members = () => {
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
                             <span className="text-blue-600 font-medium">
-                              {member.first_name[0]}{member.middle_name ? member.middle_name[0] : ''}{member.last_name[0]}
+                              {member.first_name[0]}
+                              {member.middle_name ? member.middle_name[0] : ""}
+                              {member.last_name[0]}
                             </span>
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">
-                              {member.first_name} {member.middle_name ? member.middle_name + ' ' : ''}{member.last_name}
+                              {member.first_name}{" "}
+                              {member.middle_name
+                                ? member.middle_name + " "
+                                : ""}
+                              {member.last_name}
                             </div>
                             <div className="text-sm text-gray-500">
                               {member.member_id}
@@ -1719,13 +2015,15 @@ const Members = () => {
                         {member.emergency_contact_phone}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          member.membership_status === 'Active' 
-                            ? 'bg-green-100 text-green-800'
-                            : member.membership_status === 'Inactive'
-                            ? 'bg-gray-100 text-gray-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}>
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            member.membership_status === "Active"
+                              ? "bg-green-100 text-green-800"
+                              : member.membership_status === "Inactive"
+                              ? "bg-gray-100 text-gray-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
                           {member.membership_status}
                         </span>
                       </td>
@@ -1778,7 +2076,8 @@ const Members = () => {
               <option value={50}>50</option>
             </select>
             <span className="text-sm text-gray-600">
-              Showing {startIndex + 1}-{Math.min(endIndex, totalCount)} of {totalCount} members
+              Showing {startIndex + 1}-{Math.min(endIndex, totalCount)} of{" "}
+              {totalCount} members
             </span>
           </div>
 
@@ -1824,8 +2123,8 @@ const Members = () => {
                     onClick={() => goToPage(pageNum)}
                     className={`min-w-[2rem] px-2 py-1 text-sm rounded-lg border transition ${
                       currentPage === pageNum
-                        ? 'bg-amber-300 border-amber-400 text-black font-semibold'
-                        : 'border-gray-300 hover:bg-gray-50'
+                        ? "bg-amber-300 border-amber-400 text-black font-semibold"
+                        : "border-gray-300 hover:bg-gray-50"
                     }`}
                   >
                     {pageNum}
