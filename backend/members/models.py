@@ -2,8 +2,6 @@ from django.db import models
 from django.core.validators import RegexValidator
 from django.utils import timezone
 import re
-from core.models import SystemSetting
-from django.core.exceptions import ValidationError
 
 class Member(models.Model):
     MEMBERSHIP_STATUS_CHOICES = [
@@ -126,23 +124,7 @@ class Member(models.Model):
             else:
                 new_number = 1
             self.member_id = f"M{new_number:04d}"
-
-         # --- Get system settings ---
-        settings = SystemSetting.get_settings()
-        # --- Validate date_of_birth ---
-        if self.date_of_birth and self.date_of_birth > timezone.now().date():
-            raise ValidationError("Date of birth cannot be in the future.")
         
-        # --- Validate membership_date ---
-        # membership_date cannot be before organization's startup_date
-        if self.membership_date and settings.startup_date:
-            if self.membership_date < settings.startup_date:
-                raise ValidationError(
-                    f"Membership date cannot be before the organization's startup date ({settings.startup_date})."
-                )
-        if self.membership_date and self.membership_date > timezone.now().date():
-            raise ValidationError("Membership date cannot be in the future.")
-                
         # Normalize phone numbers
         self.phone_number = self.normalize_phone_number(self.phone_number)
         self.emergency_contact_phone = self.normalize_phone_number(self.emergency_contact_phone)
